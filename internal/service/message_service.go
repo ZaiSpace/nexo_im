@@ -2,14 +2,16 @@ package service
 
 import (
 	"context"
+	"errors"
 	"strings"
 
 	"github.com/mbeoliero/kit/log"
+	"gorm.io/gorm"
+
 	"github.com/mbeoliero/nexo/internal/entity"
 	"github.com/mbeoliero/nexo/internal/repository"
 	"github.com/mbeoliero/nexo/pkg/constant"
 	"github.com/mbeoliero/nexo/pkg/errcode"
-	"gorm.io/gorm"
 )
 
 // MessagePusher interface for pushing messages
@@ -48,8 +50,8 @@ func (s *MessageService) SetPusher(pusher MessagePusher) {
 // SendMessageRequest represents send message request
 type SendMessageRequest struct {
 	ClientMsgId string                `json:"client_msg_id"`
-	RecvId      string                `json:"recv_id,omitempty"`   // For single chat
-	GroupId     string                `json:"group_id,omitempty"`  // For group chat
+	RecvId      string                `json:"recv_id,omitempty"`  // For single chat
+	GroupId     string                `json:"group_id,omitempty"` // For group chat
 	SessionType int32                 `json:"session_type"`
 	MsgType     int32                 `json:"msg_type"`
 	Content     entity.MessageContent `json:"content"`
@@ -102,17 +104,17 @@ func (s *MessageService) SendSingleMessage(ctx context.Context, senderId string,
 		}
 		msg.SetContent(req.Content)
 
-		if err := s.msgRepo.Create(ctx, tx, msg); err != nil {
+		if err = s.msgRepo.Create(ctx, tx, msg); err != nil {
 			return err
 		}
 
 		// Sync seq to MySQL
-		if err := s.seqRepo.SyncSeqToMySQLWithTx(ctx, tx, conversationId, seq); err != nil {
+		if err = s.seqRepo.SyncSeqToMySQLWithTx(ctx, tx, conversationId, seq); err != nil {
 			return err
 		}
 
 		// Ensure conversations exist for both parties with correct peer_user_id
-		if err := s.convRepo.EnsureSingleChatConversations(ctx, tx, conversationId, senderId, req.RecvId); err != nil {
+		if err = s.convRepo.EnsureSingleChatConversations(ctx, tx, conversationId, senderId, req.RecvId); err != nil {
 			return err
 		}
 
@@ -120,7 +122,8 @@ func (s *MessageService) SendSingleMessage(ctx context.Context, senderId string,
 	})
 
 	if err != nil {
-		if e, ok := err.(*errcode.Error); ok {
+		var e *errcode.Error
+		if errors.As(err, &e) {
 			return nil, e
 		}
 		log.CtxError(ctx, "send single message failed: %v", err)

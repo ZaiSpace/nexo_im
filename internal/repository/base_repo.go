@@ -6,11 +6,12 @@ import (
 	"time"
 
 	"github.com/mbeoliero/kit/log"
-	"github.com/mbeoliero/nexo/internal/config"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+
+	"github.com/mbeoliero/nexo/internal/config"
 )
 
 // Repositories holds all repositories
@@ -116,13 +117,13 @@ func (r *Repositories) CheckConnection(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	if err := sqlDB.PingContext(ctx); err != nil {
+	if err = sqlDB.PingContext(ctx); err != nil {
 		log.CtxError(ctx, "mysql ping failed: %v", err)
 		return err
 	}
 
 	// Check Redis
-	if err := r.Redis.Ping(ctx).Err(); err != nil {
+	if err = r.Redis.Ping(ctx).Err(); err != nil {
 		log.CtxError(ctx, "redis ping failed: %v", err)
 		return err
 	}

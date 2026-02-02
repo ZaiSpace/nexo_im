@@ -59,7 +59,7 @@ func (c *Client) readLoop() {
 	for {
 		message, err := c.conn.ReadMessage()
 		if err != nil {
-			log.CtxDebug(c.ctx, "read message error: user_id=%s, error=%v", c.UserId, err)
+			log.CtxWarn(c.ctx, "read message error: user_id=%s, error=%v", c.UserId, err)
 			c.closedErr = err
 			return
 		}
@@ -69,7 +69,7 @@ func (c *Client) readLoop() {
 			return
 		}
 
-		if err := c.handleMessage(message); err != nil {
+		if err = c.handleMessage(message); err != nil {
 			log.CtxWarn(c.ctx, "handle message error: user_id=%s, error=%v", c.UserId, err)
 			c.closedErr = err
 			return
@@ -188,7 +188,8 @@ func (c *Client) KickOnline() error {
 	resp := WSResponse{
 		ReqIdentifier: WSKickOnlineMsg,
 	}
-	c.writeResponse(resp)
+
+	_ = c.writeResponse(resp)
 	return c.Close()
 }
 

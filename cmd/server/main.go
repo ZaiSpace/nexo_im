@@ -9,6 +9,7 @@ import (
 
 	"github.com/cloudwego/hertz/pkg/app/server"
 	"github.com/mbeoliero/kit/log"
+
 	"github.com/mbeoliero/nexo/internal/config"
 	"github.com/mbeoliero/nexo/internal/gateway"
 	"github.com/mbeoliero/nexo/internal/handler"
@@ -40,10 +41,10 @@ func main() {
 		log.CtxError(ctx, "failed to initialize repositories: %v", err)
 		panic(err)
 	}
-	defer repos.Close()
+	defer func() { _ = repos.Close() }()
 
 	// Check database connection
-	if err := repos.CheckConnection(ctx); err != nil {
+	if err = repos.CheckConnection(ctx); err != nil {
 		log.CtxError(ctx, "database connection check failed: %v", err)
 		panic(err)
 	}
@@ -98,7 +99,7 @@ func main() {
 	log.CtxInfo(ctx, "shutting down server...")
 
 	// Graceful shutdown
-	if err := h.Shutdown(ctx); err != nil {
+	if err = h.Shutdown(ctx); err != nil {
 		log.CtxError(ctx, "server shutdown error: %v", err)
 	}
 

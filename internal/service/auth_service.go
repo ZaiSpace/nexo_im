@@ -5,13 +5,14 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/mbeoliero/kit/log"
+	"github.com/redis/go-redis/v9"
+	"golang.org/x/crypto/bcrypt"
+
 	"github.com/mbeoliero/nexo/internal/config"
 	"github.com/mbeoliero/nexo/internal/entity"
 	"github.com/mbeoliero/nexo/internal/repository"
 	"github.com/mbeoliero/nexo/pkg/errcode"
 	"github.com/mbeoliero/nexo/pkg/jwt"
-	"github.com/redis/go-redis/v9"
-	"golang.org/x/crypto/bcrypt"
 )
 
 // AuthService handles authentication logic
@@ -84,7 +85,7 @@ func (s *AuthService) Register(ctx context.Context, req *RegisterRequest) (*enti
 		Avatar:   req.Avatar,
 	}
 
-	if err := s.userRepo.Create(ctx, user); err != nil {
+	if err = s.userRepo.Create(ctx, user); err != nil {
 		log.CtxError(ctx, "create user failed: %v", err)
 		return nil, errcode.ErrInternalServer
 	}
@@ -103,7 +104,7 @@ func (s *AuthService) Login(ctx context.Context, req *LoginRequest) (*LoginRespo
 	}
 
 	// Verify password with bcrypt
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
+	if err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
 		return nil, errcode.ErrPasswordWrong
 	}
 
@@ -115,7 +116,7 @@ func (s *AuthService) Login(ctx context.Context, req *LoginRequest) (*LoginRespo
 	}
 
 	// Store token in Redis
-	if err := s.tokenStore.StoreToken(ctx, user.Id, req.PlatformId, token); err != nil {
+	if err = s.tokenStore.StoreToken(ctx, user.Id, req.PlatformId, token); err != nil {
 		log.CtxError(ctx, "store token failed: %v", err)
 		return nil, errcode.ErrInternalServer
 	}

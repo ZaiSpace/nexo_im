@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/cloudwego/hertz/pkg/app"
+
 	"github.com/mbeoliero/nexo/internal/middleware"
 	"github.com/mbeoliero/nexo/internal/service"
 	"github.com/mbeoliero/nexo/pkg/errcode"
@@ -182,7 +183,7 @@ func (h *ConversationHandler) GetUnreadCount(ctx context.Context, c *app.Request
 		unreadCount = 0
 	}
 
-	response.Success(ctx, c, map[string]interface{}{
+	response.Success(ctx, c, map[string]any{
 		"unread_count": unreadCount,
 	})
 }

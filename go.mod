@@ -4,10 +4,9 @@ go 1.25.5
 
 require (
 	github.com/cloudwego/hertz v0.10.3
-	github.com/golang-jwt/jwt/v5 v5.2.1
+	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3
-	github.com/hertz-contrib/websocket v0.2.0
 	github.com/mbeoliero/kit v0.0.0-20260124081345-327b8689d86b
 	github.com/redis/go-redis/v9 v9.17.2
 	github.com/sony/sonyflake v1.3.0

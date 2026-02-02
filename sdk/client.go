@@ -79,7 +79,7 @@ func (c *Client) GetToken() string {
 }
 
 // request makes an HTTP request and decodes the response
-func (c *Client) request(ctx context.Context, method, path string, body interface{}, result interface{}) error {
+func (c *Client) request(ctx context.Context, method, path string, body any, result any) error {
 	reqURL := c.baseURL + path
 
 	req := &protocol.Request{}
@@ -132,7 +132,7 @@ func (c *Client) request(ctx context.Context, method, path string, body interfac
 }
 
 // get makes a GET request with query parameters
-func (c *Client) get(ctx context.Context, path string, params map[string]string, result interface{}) error {
+func (c *Client) get(ctx context.Context, path string, params map[string]string, result any) error {
 	reqURL := c.baseURL + path
 	if len(params) > 0 {
 		query := url.Values{}
@@ -159,7 +159,7 @@ func (c *Client) get(ctx context.Context, path string, params map[string]string,
 
 	// Decode response
 	var apiResp Response
-	if err := json.Unmarshal(resp.Body(), &apiResp); err != nil {
+	if err = json.Unmarshal(resp.Body(), &apiResp); err != nil {
 		return fmt.Errorf("failed to decode response: %w", err)
 	}
 

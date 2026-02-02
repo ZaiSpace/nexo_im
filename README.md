@@ -64,8 +64,8 @@ nexo_v2/
 1. 克隆项目
 
 ```bash
-git clone https://github.com/your-repo/nexo_v2.git
-cd nexo_v2
+git clone https://github.com/mbeoliero/nexo.git
+cd nexo
 ```
 
 2. 安装依赖

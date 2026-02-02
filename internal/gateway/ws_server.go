@@ -5,18 +5,20 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 	"sync/atomic"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/mbeoliero/kit/log"
+	"github.com/redis/go-redis/v9"
+
 	"github.com/mbeoliero/nexo/internal/config"
 	"github.com/mbeoliero/nexo/internal/entity"
 	"github.com/mbeoliero/nexo/internal/service"
 	"github.com/mbeoliero/nexo/pkg/constant"
 	"github.com/mbeoliero/nexo/pkg/errcode"
 	"github.com/mbeoliero/nexo/pkg/jwt"
-	"github.com/redis/go-redis/v9"
 )
 
 // WsServer is the WebSocket server
@@ -46,7 +48,22 @@ func NewWsServer(cfg *config.Config, rdb *redis.Client, msgService *service.Mess
 	upgrader := &websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
-		CheckOrigin:     func(r *http.Request) bool { return true },
+		CheckOrigin: func(r *http.Request) bool {
+			origin := r.Header.Get("Origin")
+			if origin == "" {
+				return true
+			}
+			allowed := cfg.Server.AllowedOrigins
+			if len(allowed) == 0 {
+				return false
+			}
+			for _, o := range allowed {
+				if o == "*" || strings.EqualFold(o, origin) {
+					return true
+				}
+			}
+			return false
+		},
 	}
 
 	server := &WsServer{

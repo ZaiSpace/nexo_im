@@ -17,23 +17,23 @@ type ClientConn interface {
 	SetWriteDeadline(t time.Time) error
 }
 
-// websocketClientConn implements ClientConn using gorilla/websocket
-type websocketClientConn struct {
-	conn        *websocket.Conn
-	writeChan   chan []byte
-	writeMu     sync.Mutex
-	closeOnce   sync.Once
-	closed      bool
-	closeChan   chan struct{}
-	pingPeriod  time.Duration
-	pongWait    time.Duration
-	writeWait   time.Duration
-	maxMsgSize  int64
+// WebsocketClientConn implements ClientConn using gorilla/websocket
+type WebsocketClientConn struct {
+	conn       *websocket.Conn
+	writeChan  chan []byte
+	writeMu    sync.Mutex
+	closeOnce  sync.Once
+	closed     bool
+	closeChan  chan struct{}
+	pingPeriod time.Duration
+	pongWait   time.Duration
+	writeWait  time.Duration
+	maxMsgSize int64
 }
 
 // NewWebSocketClientConn creates a new websocket client connection
-func NewWebSocketClientConn(conn *websocket.Conn, maxMsgSize int64, pongWait, pingPeriod time.Duration) *websocketClientConn {
-	c := &websocketClientConn{
+func NewWebSocketClientConn(conn *websocket.Conn, maxMsgSize int64, pongWait, pingPeriod time.Duration) *WebsocketClientConn {
+	c := &WebsocketClientConn{
 		conn:       conn,
 		writeChan:  make(chan []byte, 256), // Buffered write channel
 		closeChan:  make(chan struct{}),
@@ -48,7 +48,7 @@ func NewWebSocketClientConn(conn *websocket.Conn, maxMsgSize int64, pongWait, pi
 
 	// Set pong handler to extend read deadline
 	conn.SetPongHandler(func(string) error {
-		conn.SetReadDeadline(time.Now().Add(pongWait))
+		_ = conn.SetReadDeadline(time.Now().Add(pongWait))
 		return nil
 	})
 
@@ -59,20 +59,20 @@ func NewWebSocketClientConn(conn *websocket.Conn, maxMsgSize int64, pongWait, pi
 }
 
 // writeLoop handles all writes to the connection (single writer pattern)
-func (c *websocketClientConn) writeLoop() {
+func (c *WebsocketClientConn) writeLoop() {
 	ticker := time.NewTicker(c.pingPeriod)
 	defer func() {
 		ticker.Stop()
-		c.conn.Close()
+		_ = c.conn.Close()
 	}()
 
 	for {
 		select {
 		case message, ok := <-c.writeChan:
-			c.conn.SetWriteDeadline(time.Now().Add(c.writeWait))
+			_ = c.conn.SetWriteDeadline(time.Now().Add(c.writeWait))
 			if !ok {
 				// Channel closed, send close message
-				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				_ = c.conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
 
@@ -82,7 +82,7 @@ func (c *websocketClientConn) writeLoop() {
 			}
 
 		case <-ticker.C:
-			c.conn.SetWriteDeadline(time.Now().Add(c.writeWait))
+			_ = c.conn.SetWriteDeadline(time.Now().Add(c.writeWait))
 			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 				log.Debug("ping error: %v", err)
 				return
@@ -95,14 +95,14 @@ func (c *websocketClientConn) writeLoop() {
 }
 
 // ReadMessage reads a message from the connection
-func (c *websocketClientConn) ReadMessage() ([]byte, error) {
-	c.conn.SetReadDeadline(time.Now().Add(c.pongWait))
+func (c *WebsocketClientConn) ReadMessage() ([]byte, error) {
+	_ = c.conn.SetReadDeadline(time.Now().Add(c.pongWait))
 	_, message, err := c.conn.ReadMessage()
 	return message, err
 }
 
 // WriteMessage queues a message to be written
-func (c *websocketClientConn) WriteMessage(data []byte) error {
+func (c *WebsocketClientConn) WriteMessage(data []byte) error {
 	c.writeMu.Lock()
 	defer c.writeMu.Unlock()
 
@@ -120,7 +120,7 @@ func (c *websocketClientConn) WriteMessage(data []byte) error {
 }
 
 // Close closes the connection
-func (c *websocketClientConn) Close() error {
+func (c *WebsocketClientConn) Close() error {
 	c.closeOnce.Do(func() {
 		c.writeMu.Lock()
 		c.closed = true
@@ -133,11 +133,11 @@ func (c *websocketClientConn) Close() error {
 }
 
 // SetReadDeadline sets the read deadline
-func (c *websocketClientConn) SetReadDeadline(t time.Time) error {
+func (c *WebsocketClientConn) SetReadDeadline(t time.Time) error {
 	return c.conn.SetReadDeadline(t)
 }
 
 // SetWriteDeadline sets the write deadline
-func (c *websocketClientConn) SetWriteDeadline(t time.Time) error {
+func (c *WebsocketClientConn) SetWriteDeadline(t time.Time) error {
 	return c.conn.SetWriteDeadline(t)
 }

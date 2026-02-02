@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/cloudwego/hertz/pkg/app"
+
 	"github.com/mbeoliero/nexo/internal/middleware"
 	"github.com/mbeoliero/nexo/internal/service"
 	"github.com/mbeoliero/nexo/pkg/errcode"
@@ -75,14 +76,14 @@ func (h *MessageHandler) PullMessages(ctx context.Context, c *app.RequestContext
 		return
 	}
 
-	msgInfos := make([]*interface{}, 0, len(messages))
+	msgInfos := make([]*any, 0, len(messages))
 	for _, msg := range messages {
 		info := msg.ToMessageInfo()
-		msgInfos = append(msgInfos, func() *interface{} { var i interface{} = info; return &i }())
+		msgInfos = append(msgInfos, func() *any { var i any = info; return &i }())
 	}
 
-	response.Success(ctx, c, map[string]interface{}{
-		"messages": messages,
+	response.Success(ctx, c, map[string]any{
+		"messages": msgInfos,
 		"max_seq":  maxSeq,
 	})
 }

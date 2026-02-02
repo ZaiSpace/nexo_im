@@ -2,13 +2,13 @@ package router
 
 import (
 	"context"
-	"strings"
+	"net/http"
 
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/app/server"
+	"github.com/cloudwego/hertz/pkg/common/adaptor"
 	"github.com/cloudwego/hertz/pkg/protocol/consts"
-	"github.com/hertz-contrib/websocket"
-	"github.com/mbeoliero/nexo/internal/config"
+
 	"github.com/mbeoliero/nexo/internal/gateway"
 	"github.com/mbeoliero/nexo/internal/handler"
 	"github.com/mbeoliero/nexo/internal/middleware"
@@ -16,8 +16,6 @@ import (
 
 // SetupRouter sets up all routes
 func SetupRouter(h *server.Hertz, handlers *Handlers, wsServer *gateway.WsServer) {
-	cfg := config.GlobalConfig
-
 	// CORS middleware
 	h.Use(middleware.CORS())
 
@@ -71,45 +69,10 @@ func SetupRouter(h *server.Hertz, handlers *Handlers, wsServer *gateway.WsServer
 		convGroup.GET("/unread_count", handlers.Conversation.GetUnreadCount)
 	}
 
-	// WebSocket route using hertz-contrib/websocket with proper origin validation
-	allowedOrigins := cfg.Server.AllowedOrigins
-	upgrader := &websocket.HertzUpgrader{
-		CheckOrigin: func(ctx *app.RequestContext) bool {
-			return checkOrigin(ctx, allowedOrigins)
-		},
-	}
-
-	h.GET("/ws", func(ctx context.Context, c *app.RequestContext) {
-		wsServer.HandleHertzConnection(ctx, c, upgrader)
-	})
-}
-
-// checkOrigin validates the Origin header against allowed origins
-func checkOrigin(ctx *app.RequestContext, allowedOrigins []string) bool {
-	origin := string(ctx.Request.Header.Peek("Origin"))
-
-	// If no origin header, allow (same-origin request or non-browser client)
-	if origin == "" {
-		return true
-	}
-
-	// If no allowed origins configured, reject all cross-origin requests in production
-	if len(allowedOrigins) == 0 {
-		return false
-	}
-
-	// Check against allowed origins
-	for _, allowed := range allowedOrigins {
-		if allowed == "*" {
-			// Wildcard - allow all (only use in development!)
-			return true
-		}
-		if strings.EqualFold(origin, allowed) {
-			return true
-		}
-	}
-
-	return false
+	// WebSocket route using net/http handler via Hertz adaptor
+	h.GET("/ws", adaptor.HertzHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		wsServer.HandleConnection(r.Context(), w, r)
+	})))
 }
 
 // Handlers holds all HTTP handlers
