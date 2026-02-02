@@ -2,6 +2,7 @@ package jwt
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -63,7 +64,7 @@ func (s *TokenStore) ValidateTokenStatus(ctx context.Context, userId string, pla
 	key := s.tokenKey(userId, platformId)
 
 	statusStr, err := s.rdb.HGet(ctx, key, token).Result()
-	if err == redis.Nil {
+	if errors.Is(err, redis.Nil) {
 		// Token not found in Redis
 		return 0, nil
 	}
