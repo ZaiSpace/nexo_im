@@ -7,7 +7,7 @@ import (
 
 	"github.com/cloudwego/hertz/pkg/app"
 
-	"github.com/mbeoliero/nexo/pkg/errcode"
+	"github.com/ZaiSpace/nexo_im/pkg/errcode"
 )
 
 // Response represents a standard API response

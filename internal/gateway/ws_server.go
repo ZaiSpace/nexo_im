@@ -13,12 +13,12 @@ import (
 	"github.com/mbeoliero/kit/log"
 	"github.com/redis/go-redis/v9"
 
-	"github.com/mbeoliero/nexo/internal/config"
-	"github.com/mbeoliero/nexo/internal/entity"
-	"github.com/mbeoliero/nexo/internal/middleware"
-	"github.com/mbeoliero/nexo/internal/service"
-	"github.com/mbeoliero/nexo/pkg/constant"
-	"github.com/mbeoliero/nexo/pkg/errcode"
+	"github.com/ZaiSpace/nexo_im/internal/config"
+	"github.com/ZaiSpace/nexo_im/internal/entity"
+	"github.com/ZaiSpace/nexo_im/internal/middleware"
+	"github.com/ZaiSpace/nexo_im/internal/service"
+	"github.com/ZaiSpace/nexo_im/pkg/constant"
+	"github.com/ZaiSpace/nexo_im/pkg/errcode"
 )
 
 // WsServer is the WebSocket server

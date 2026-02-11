@@ -64,7 +64,7 @@ nexo_v2/
 1. 克隆项目
 
 ```bash
-git clone https://github.com/mbeoliero/nexo.git
+git clone https://github.com/ZaiSpace/nexo_im.git
 cd nexo
 ```
 

@@ -6,10 +6,10 @@ import (
 
 	"github.com/cloudwego/hertz/pkg/app"
 
-	"github.com/mbeoliero/nexo/internal/config"
-	"github.com/mbeoliero/nexo/pkg/errcode"
-	"github.com/mbeoliero/nexo/pkg/jwt"
-	"github.com/mbeoliero/nexo/pkg/response"
+	"github.com/ZaiSpace/nexo_im/internal/config"
+	"github.com/ZaiSpace/nexo_im/pkg/errcode"
+	"github.com/ZaiSpace/nexo_im/pkg/jwt"
+	"github.com/ZaiSpace/nexo_im/pkg/response"
 )
 
 const (

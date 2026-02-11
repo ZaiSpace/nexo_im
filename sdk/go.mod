@@ -1,10 +1,10 @@
-module github.com/mbeoliero/nexo/sdk
+module github.com/ZaiSpace/nexo_im/sdk
 
 go 1.21
 
 require (
 	github.com/cloudwego/hertz v0.10.3
-	github.com/mbeoliero/nexo/common v0.0.0
+	github.com/ZaiSpace/nexo_im/common v0.0.0
 )
 
 require (
@@ -27,4 +27,4 @@ require (
 	google.golang.org/protobuf v1.34.1 // indirect
 )
 
-replace github.com/mbeoliero/nexo/common => ../common
+replace github.com/ZaiSpace/nexo_im/common => ../common

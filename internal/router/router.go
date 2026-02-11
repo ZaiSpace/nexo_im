@@ -9,9 +9,9 @@ import (
 	"github.com/cloudwego/hertz/pkg/common/adaptor"
 	"github.com/cloudwego/hertz/pkg/protocol/consts"
 
-	"github.com/mbeoliero/nexo/internal/gateway"
-	"github.com/mbeoliero/nexo/internal/handler"
-	"github.com/mbeoliero/nexo/internal/middleware"
+	"github.com/ZaiSpace/nexo_im/internal/gateway"
+	"github.com/ZaiSpace/nexo_im/internal/handler"
+	"github.com/ZaiSpace/nexo_im/internal/middleware"
 )
 
 // SetupRouter sets up all routes

@@ -1,7 +1,7 @@
-module github.com/mbeoliero/nexo/tests
+module github.com/ZaiSpace/nexo_im/tests
 
-go 1.25.6
+go 1.25.5
 
-replace github.com/mbeoliero/nexo => ../
+replace github.com/ZaiSpace/nexo_im => ../
 
-require github.com/gorilla/websocket v1.5.3 // indirect
+require github.com/gorilla/websocket v1.5.3

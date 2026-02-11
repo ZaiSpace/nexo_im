@@ -8,11 +8,11 @@ import (
 	"github.com/redis/go-redis/v9"
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/mbeoliero/nexo/internal/config"
-	"github.com/mbeoliero/nexo/internal/entity"
-	"github.com/mbeoliero/nexo/internal/repository"
-	"github.com/mbeoliero/nexo/pkg/errcode"
-	"github.com/mbeoliero/nexo/pkg/jwt"
+	"github.com/ZaiSpace/nexo_im/internal/config"
+	"github.com/ZaiSpace/nexo_im/internal/entity"
+	"github.com/ZaiSpace/nexo_im/internal/repository"
+	"github.com/ZaiSpace/nexo_im/pkg/errcode"
+	"github.com/ZaiSpace/nexo_im/pkg/jwt"
 )
 
 // AuthService handles authentication logic

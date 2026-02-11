@@ -10,13 +10,13 @@ import (
 	"github.com/cloudwego/hertz/pkg/app/server"
 	"github.com/mbeoliero/kit/log"
 
-	"github.com/mbeoliero/nexo/internal/config"
-	"github.com/mbeoliero/nexo/internal/gateway"
-	"github.com/mbeoliero/nexo/internal/handler"
-	"github.com/mbeoliero/nexo/internal/repository"
-	"github.com/mbeoliero/nexo/internal/router"
-	"github.com/mbeoliero/nexo/internal/service"
-	"github.com/mbeoliero/nexo/pkg/constant"
+	"github.com/ZaiSpace/nexo_im/internal/config"
+	"github.com/ZaiSpace/nexo_im/internal/gateway"
+	"github.com/ZaiSpace/nexo_im/internal/handler"
+	"github.com/ZaiSpace/nexo_im/internal/repository"
+	"github.com/ZaiSpace/nexo_im/internal/router"
+	"github.com/ZaiSpace/nexo_im/internal/service"
+	"github.com/ZaiSpace/nexo_im/pkg/constant"
 )
 
 func main() {

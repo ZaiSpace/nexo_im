@@ -5,7 +5,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 
-	"github.com/mbeoliero/nexo/pkg/errcode"
+	"github.com/ZaiSpace/nexo_im/pkg/errcode"
 )
 
 // Claims represents JWT claims

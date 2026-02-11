@@ -5,7 +5,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/mbeoliero/nexo/pkg/constant"
+	"github.com/ZaiSpace/nexo_im/pkg/constant"
 )
 
 // NowUnixMilli returns current unix timestamp in milliseconds

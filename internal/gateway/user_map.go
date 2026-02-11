@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mbeoliero/nexo/pkg/constant"
+	"github.com/ZaiSpace/nexo_im/pkg/constant"
 	"github.com/redis/go-redis/v9"
 )
 

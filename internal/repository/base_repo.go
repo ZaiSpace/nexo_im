@@ -11,7 +11,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
-	"github.com/mbeoliero/nexo/internal/config"
+	"github.com/ZaiSpace/nexo_im/internal/config"
 )
 
 // Repositories holds all repositories

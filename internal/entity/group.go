@@ -1,6 +1,6 @@
 package entity
 
-import "github.com/mbeoliero/nexo/pkg/constant"
+import "github.com/ZaiSpace/nexo_im/pkg/constant"
 
 // Group represents a group
 type Group struct {

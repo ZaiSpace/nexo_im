@@ -3,8 +3,8 @@ package jwt
 import (
 	"github.com/golang-jwt/jwt/v5"
 
-	"github.com/mbeoliero/nexo/common"
-	"github.com/mbeoliero/nexo/pkg/errcode"
+	"github.com/ZaiSpace/nexo_im/common"
+	"github.com/ZaiSpace/nexo_im/pkg/errcode"
 )
 
 // ExternalClaims represents claims from an external system.

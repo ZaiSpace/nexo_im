@@ -4,9 +4,9 @@ import (
 	"context"
 
 	"github.com/mbeoliero/kit/log"
-	"github.com/mbeoliero/nexo/internal/entity"
-	"github.com/mbeoliero/nexo/internal/repository"
-	"github.com/mbeoliero/nexo/pkg/errcode"
+	"github.com/ZaiSpace/nexo_im/internal/entity"
+	"github.com/ZaiSpace/nexo_im/internal/repository"
+	"github.com/ZaiSpace/nexo_im/pkg/errcode"
 )
 
 // UserService handles user-related business logic

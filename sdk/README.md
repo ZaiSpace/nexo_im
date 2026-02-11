@@ -5,7 +5,7 @@ Nexo IM 系统的 Go SDK，供后端服务调用 IM 系统的 API。
 ## 安装
 
 ```bash
-go get github.com/mbeoliero/nexo/sdk
+go get github.com/ZaiSpace/nexo_im/sdk
 ```
 
 ## 快速开始
@@ -18,7 +18,7 @@ import (
     "fmt"
     "log"
 
-    "github.com/mbeoliero/nexo/sdk"
+    "github.com/ZaiSpace/nexo_im/sdk"
 )
 
 func main() {

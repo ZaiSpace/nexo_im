@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/mbeoliero/nexo/internal/entity"
-	"github.com/mbeoliero/nexo/pkg/constant"
+	"github.com/ZaiSpace/nexo_im/internal/entity"
+	"github.com/ZaiSpace/nexo_im/pkg/constant"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"

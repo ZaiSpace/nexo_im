@@ -3,7 +3,7 @@ package repository
 import (
 	"context"
 
-	"github.com/mbeoliero/nexo/internal/entity"
+	"github.com/ZaiSpace/nexo_im/internal/entity"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )

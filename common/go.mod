@@ -1,3 +1,3 @@
-module github.com/mbeoliero/nexo/common
+module github.com/ZaiSpace/nexo_im/common
 
 go 1.21

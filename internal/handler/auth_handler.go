@@ -4,9 +4,9 @@ import (
 	"context"
 
 	"github.com/cloudwego/hertz/pkg/app"
-	"github.com/mbeoliero/nexo/internal/service"
-	"github.com/mbeoliero/nexo/pkg/errcode"
-	"github.com/mbeoliero/nexo/pkg/response"
+	"github.com/ZaiSpace/nexo_im/internal/service"
+	"github.com/ZaiSpace/nexo_im/pkg/errcode"
+	"github.com/ZaiSpace/nexo_im/pkg/response"
 )
 
 // AuthHandler handles authentication requests
