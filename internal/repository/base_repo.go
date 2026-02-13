@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"crypto/tls"
 	"database/sql"
 	"time"
 
@@ -17,7 +18,7 @@ import (
 // Repositories holds all repositories
 type Repositories struct {
 	DB           *gorm.DB
-	Redis        *redis.Client
+	Redis        redis.UniversalClient
 	User         *UserRepo
 	Group        *GroupRepo
 	Message      *MessageRepo
@@ -79,12 +80,32 @@ func initMySQL(cfg *config.Config) (*gorm.DB, error) {
 	return db, nil
 }
 
-// initRedis initializes Redis connection
-func initRedis(cfg *config.Config) *redis.Client {
+// initRedis initializes Redis connection (standalone or cluster).
+func initRedis(cfg *config.Config) redis.UniversalClient {
+	var tlsConfig *tls.Config
+	if cfg.Redis.TLS {
+		tlsConfig = &tls.Config{
+			MinVersion: tls.VersionTLS12,
+		}
+	}
+
+	if cfg.Redis.Cluster {
+		addrs := cfg.Redis.Addrs
+		if len(addrs) == 0 {
+			addrs = []string{cfg.Redis.Addr()}
+		}
+		return redis.NewClusterClient(&redis.ClusterOptions{
+			Addrs:     addrs,
+			Password:  cfg.Redis.Password,
+			TLSConfig: tlsConfig,
+		})
+	}
+
 	return redis.NewClient(&redis.Options{
-		Addr:     cfg.Redis.Addr(),
-		Password: cfg.Redis.Password,
-		DB:       cfg.Redis.DB,
+		Addr:      cfg.Redis.Addr(),
+		Password:  cfg.Redis.Password,
+		DB:        cfg.Redis.DB,
+		TLSConfig: tlsConfig,
 	})
 }
 

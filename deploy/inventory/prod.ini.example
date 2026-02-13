@@ -1,0 +1,7 @@
+[nexo]
+# Replace with your production host/IP
+prod-nexo ansible_host=8.8.8.8 ansible_user=admin
+
+[nexo:vars]
+ansible_become=true
+infra_env=PROD

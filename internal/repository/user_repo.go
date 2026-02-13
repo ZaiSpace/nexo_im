@@ -11,11 +11,11 @@ import (
 // UserRepo is the repository for user operations
 type UserRepo struct {
 	db  *gorm.DB
-	rdb *redis.Client
+	rdb redis.UniversalClient
 }
 
 // NewUserRepo creates a new UserRepo
-func NewUserRepo(db *gorm.DB, rdb *redis.Client) *UserRepo {
+func NewUserRepo(db *gorm.DB, rdb redis.UniversalClient) *UserRepo {
 	return &UserRepo{db: db, rdb: rdb}
 }
 

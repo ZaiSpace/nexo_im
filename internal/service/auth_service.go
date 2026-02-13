@@ -23,7 +23,7 @@ type AuthService struct {
 }
 
 // NewAuthService creates a new AuthService
-func NewAuthService(userRepo *repository.UserRepo, cfg *config.Config, rdb *redis.Client) *AuthService {
+func NewAuthService(userRepo *repository.UserRepo, cfg *config.Config, rdb redis.UniversalClient) *AuthService {
 	return &AuthService{
 		userRepo:   userRepo,
 		cfg:        cfg,

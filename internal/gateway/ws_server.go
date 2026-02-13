@@ -44,7 +44,7 @@ type PushTask struct {
 }
 
 // NewWsServer creates a new WebSocket server
-func NewWsServer(cfg *config.Config, rdb *redis.Client, msgService *service.MessageService, convService *service.ConversationService) *WsServer {
+func NewWsServer(cfg *config.Config, rdb redis.UniversalClient, msgService *service.MessageService, convService *service.ConversationService) *WsServer {
 	upgrader := &websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,

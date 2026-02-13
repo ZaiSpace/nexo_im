@@ -14,11 +14,11 @@ import (
 // GroupRepo is the repository for group operations
 type GroupRepo struct {
 	db  *gorm.DB
-	rdb *redis.Client
+	rdb redis.UniversalClient
 }
 
 // NewGroupRepo creates a new GroupRepo
-func NewGroupRepo(db *gorm.DB, rdb *redis.Client) *GroupRepo {
+func NewGroupRepo(db *gorm.DB, rdb redis.UniversalClient) *GroupRepo {
 	return &GroupRepo{db: db, rdb: rdb}
 }
 

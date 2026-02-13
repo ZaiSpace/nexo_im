@@ -1,0 +1,17 @@
+[program:{{ app_name }}]
+directory={{ app_root }}
+command=/bin/bash -lc "./bin/nexo_im"
+autostart=true
+autorestart=true
+startsecs=3
+startretries=3
+stopsignal=TERM
+stopwaitsecs=20
+user={{ run_user }}
+environment=INFRA_ENV="{{ infra_env }}"
+stdout_logfile={{ log_root }}/{{ app_name }}.out.log
+stderr_logfile={{ log_root }}/{{ app_name }}.err.log
+stdout_logfile_maxbytes=50MB
+stderr_logfile_maxbytes=50MB
+stdout_logfile_backups=10
+stderr_logfile_backups=10

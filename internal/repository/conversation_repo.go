@@ -13,11 +13,11 @@ import (
 // ConversationRepo is the repository for conversation operations
 type ConversationRepo struct {
 	db  *gorm.DB
-	rdb *redis.Client
+	rdb redis.UniversalClient
 }
 
 // NewConversationRepo creates a new ConversationRepo
-func NewConversationRepo(db *gorm.DB, rdb *redis.Client) *ConversationRepo {
+func NewConversationRepo(db *gorm.DB, rdb redis.UniversalClient) *ConversationRepo {
 	return &ConversationRepo{db: db, rdb: rdb}
 }
 

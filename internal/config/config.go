@@ -2,9 +2,21 @@ package config
 
 import (
 	"fmt"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/spf13/viper"
+)
+
+const (
+	PROD  = "PROD"
+	TEST  = "TEST"
+	LOCAL = "LOCAL"
+)
+
+const (
+	keyEnv string = "INFRA_ENV"
 )
 
 // Config holds all configuration
@@ -50,6 +62,13 @@ type RedisConfig struct {
 	Password  string `mapstructure:"password"`
 	DB        int    `mapstructure:"db"`
 	KeyPrefix string `mapstructure:"key_prefix"`
+	// Cluster enables Redis Cluster mode. When enabled, Addr()/Host/Port will be used to
+	// build an initial seed list unless Addrs is explicitly provided.
+	Cluster bool `mapstructure:"cluster"`
+	// TLS enables TLS when connecting to Redis (standalone or cluster).
+	TLS bool `mapstructure:"tls"`
+	// Addrs is an optional list of addresses ("host:port"). Useful for Redis Cluster.
+	Addrs []string `mapstructure:"addrs"`
 }
 
 // Addr returns the Redis address
@@ -86,10 +105,44 @@ type WebSocketConfig struct {
 // Global config instance
 var GlobalConfig *Config
 
-// Load loads configuration from file
+func normalizeInfraEnv(env string) string {
+	switch strings.ToUpper(strings.TrimSpace(env)) {
+	case PROD:
+		return PROD
+	case TEST:
+		return TEST
+	case LOCAL:
+		return LOCAL
+	default:
+		return LOCAL
+	}
+}
+
+// ResolveConfigPath resolves config file by INFRA_ENV.
+// Priority: explicit configPath > INFRA_ENV mapped path > default local path.
+func ResolveConfigPath(configPath string) string {
+	if strings.TrimSpace(configPath) != "" {
+		return configPath
+	}
+
+	switch normalizeInfraEnv(os.Getenv(keyEnv)) {
+	case PROD:
+		return "config/config.prod.yaml"
+	case TEST:
+		return "config/config.test.yaml"
+	default:
+		return "config/config.local.yaml"
+	}
+}
+
+// Load loads configuration from file and environment variables.
 func Load(configPath string) (*Config, error) {
+	configPath = ResolveConfigPath(configPath)
 	viper.SetConfigFile(configPath)
 	viper.SetConfigType("yaml")
+	viper.SetEnvPrefix("INFRA")
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	viper.AutomaticEnv()
 
 	if err := viper.ReadInConfig(); err != nil {
 		return nil, fmt.Errorf("failed to read config file: %w", err)
@@ -121,6 +174,9 @@ func Load(configPath string) (*Config, error) {
 	}
 	if cfg.Redis.KeyPrefix == "" {
 		cfg.Redis.KeyPrefix = "nexo:"
+	}
+	if cfg.Redis.Port == 0 {
+		cfg.Redis.Port = 6379
 	}
 	if cfg.JWT.ExpireHours == 0 {
 		cfg.JWT.ExpireHours = 168 // 7 days

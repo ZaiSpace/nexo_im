@@ -12,11 +12,11 @@ import (
 // MessageRepo is the repository for message operations
 type MessageRepo struct {
 	db  *gorm.DB
-	rdb *redis.Client
+	rdb redis.UniversalClient
 }
 
 // NewMessageRepo creates a new MessageRepo
-func NewMessageRepo(db *gorm.DB, rdb *redis.Client) *MessageRepo {
+func NewMessageRepo(db *gorm.DB, rdb redis.UniversalClient) *MessageRepo {
 	return &MessageRepo{db: db, rdb: rdb}
 }
 

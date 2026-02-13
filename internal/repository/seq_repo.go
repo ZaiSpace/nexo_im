@@ -15,11 +15,11 @@ import (
 // SeqRepo is the repository for sequence operations
 type SeqRepo struct {
 	db  *gorm.DB
-	rdb *redis.Client
+	rdb redis.UniversalClient
 }
 
 // NewSeqRepo creates a new SeqRepo
-func NewSeqRepo(db *gorm.DB, rdb *redis.Client) *SeqRepo {
+func NewSeqRepo(db *gorm.DB, rdb redis.UniversalClient) *SeqRepo {
 	return &SeqRepo{db: db, rdb: rdb}
 }
 
@@ -152,15 +152,15 @@ func (r *SeqRepo) SetSeqUserMinSeq(ctx context.Context, tx *gorm.DB, userId, con
 		UserId:         userId,
 		ConversationId: conversationId,
 		MinSeq:         minSeq,
-		MaxSeq:         0,            // No upper limit
-		ReadSeq:        minSeq - 1,   // Set read_seq to just before min_seq
+		MaxSeq:         0,          // No upper limit
+		ReadSeq:        minSeq - 1, // Set read_seq to just before min_seq
 	}
 
 	return tx.WithContext(ctx).Clauses(clause.OnConflict{
 		Columns: []clause.Column{{Name: "user_id"}, {Name: "conversation_id"}},
 		DoUpdates: clause.Assignments(map[string]interface{}{
 			"min_seq":  minSeq,
-			"max_seq":  0,            // Reset max_seq to allow seeing new messages
+			"max_seq":  0, // Reset max_seq to allow seeing new messages
 			"read_seq": minSeq - 1,
 		}),
 	}).Create(seqUser).Error

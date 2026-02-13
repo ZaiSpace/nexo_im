@@ -23,7 +23,7 @@ func main() {
 	ctx := context.TODO()
 
 	// Load configuration
-	cfg, err := config.Load("config/config.yaml")
+	cfg, err := config.Load("")
 	if err != nil {
 		log.CtxError(ctx, "failed to load config: %v", err)
 		panic(err)

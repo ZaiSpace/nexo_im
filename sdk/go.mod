@@ -1,6 +1,6 @@
 module github.com/ZaiSpace/nexo_im/sdk
 
-go 1.21
+go 1.25
 
 require (
 	github.com/cloudwego/hertz v0.10.3

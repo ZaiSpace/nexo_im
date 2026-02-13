@@ -1,0 +1,9 @@
+app_name: nexo_im
+deploy_root: /opt/nexo_im
+app_root: "{{ deploy_root }}/current"
+shared_root: "{{ deploy_root }}/shared"
+log_root: "{{ shared_root }}/logs"
+supervisor_conf_path: /etc/supervisor/conf.d/nexo_im.conf
+run_user: www-data
+infra_env: TEST
+go_private: github.com/ZaiSpace/*,github.com/mbeoliero/*

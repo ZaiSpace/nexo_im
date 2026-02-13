@@ -14,7 +14,7 @@ import (
 type UserMap struct {
 	mu    sync.RWMutex
 	users map[string]*UserPlatform // userId -> UserPlatform
-	rdb   *redis.Client
+	rdb   redis.UniversalClient
 }
 
 // UserPlatform holds all connections for a user
@@ -24,7 +24,7 @@ type UserPlatform struct {
 }
 
 // NewUserMap creates a new UserMap
-func NewUserMap(rdb *redis.Client) *UserMap {
+func NewUserMap(rdb redis.UniversalClient) *UserMap {
 	return &UserMap{
 		users: make(map[string]*UserPlatform),
 		rdb:   rdb,

@@ -1,6 +1,9 @@
 -- Nexo IM Database Schema
 -- Version: 1.0.0
 
+CREATE DATABASE IF NOT EXISTS `nexo_im` DEFAULT CHARACTER SET utf8mb4;
+USE `nexo_im`;
+
 -- Users table
 CREATE TABLE IF NOT EXISTS users (
     id VARCHAR(64) PRIMARY KEY,

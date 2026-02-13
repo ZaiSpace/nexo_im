@@ -1,0 +1,44 @@
+server:
+  http_port: 8080
+  ws_port: 8080
+  mode: release
+  allowed_origins:
+    - "https://your-production-domain.com"
+
+mysql:
+  host: 127.0.0.1
+  port: 3306
+  user: root
+  password: ""
+  database: nexo_im
+  charset: utf8mb4
+  max_open_conns: 100
+  max_idle_conns: 10
+
+redis:
+  host: 127.0.0.1
+  port: 6379
+  password: ""
+  db: 0
+  key_prefix: "nexo_im:"
+  cluster: false
+  tls: true
+  addrs: []
+
+jwt:
+  secret: "change-me-in-production"
+  expire_hours: 168
+
+external_jwt:
+  enabled: false
+  secret: ""
+  default_role: "user"
+  default_platform_id: 1
+
+websocket:
+  max_conn_num: 10000
+  max_message_size: 51200
+  write_wait: 10s
+  pong_wait: 30s
+  ping_period: 27s
+  push_channel_size: 10000

@@ -20,13 +20,13 @@ const (
 
 // TokenStore manages token storage in Redis
 type TokenStore struct {
-	rdb          *redis.Client
+	rdb          redis.UniversalClient
 	accessExpire time.Duration
 	keyPrefix    string
 }
 
 // NewTokenStore creates a new TokenStore
-func NewTokenStore(rdb *redis.Client, expireHours int) *TokenStore {
+func NewTokenStore(rdb redis.UniversalClient, expireHours int) *TokenStore {
 	return &TokenStore{
 		rdb:          rdb,
 		accessExpire: time.Duration(expireHours) * time.Hour,
