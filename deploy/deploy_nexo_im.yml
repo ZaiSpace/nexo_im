@@ -56,11 +56,23 @@
         state: directory
         mode: "0755"
 
+    - name: Download Go modules on remote host
+      ansible.builtin.command: /usr/local/go/bin/go mod download
+      args:
+        chdir: "{{ app_root }}"
+      environment:
+        GOFLAGS: "-mod=mod"
+        GOPRIVATE: "{{ go_private }}"
+        GONOSUMDB: "{{ go_private }}"
+        GONOPROXY: "{{ go_private }}"
+        PATH: "/usr/local/go/bin:{{ ansible_env.PATH | default('/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin') }}"
+
     - name: Build nexo_im binary on remote host
       ansible.builtin.command: /usr/local/go/bin/go build -o bin/nexo_im ./cmd/server
       args:
         chdir: "{{ app_root }}"
       environment:
+        GOFLAGS: "-mod=mod"
         CGO_ENABLED: "0"
         GOPRIVATE: "{{ go_private }}"
         GONOSUMDB: "{{ go_private }}"

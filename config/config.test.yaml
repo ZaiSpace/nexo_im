@@ -39,6 +39,13 @@ external_jwt:
   default_role: "user"      # "user" or "agent"
   default_platform_id: 1    # Web
 
+internal_auth:
+  enabled: true
+  secret: "zai_space"
+  allowed_services:
+    - "island-app-gateway"
+  max_skew_seconds: 300
+
 websocket:
   max_conn_num: 10000
   max_message_size: 51200

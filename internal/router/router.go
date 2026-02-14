@@ -31,7 +31,7 @@ func SetupRouter(h *server.Hertz, handlers *Handlers, wsServer *gateway.WsServer
 		authGroup.POST("/login", handlers.Auth.Login)
 	}
 
-	// User routes (auth required)
+	// User routes (JWT auth required)
 	userGroup := h.Group("/user", middleware.JWTAuth())
 	{
 		userGroup.GET("/info", handlers.User.GetUserInfo)
@@ -41,7 +41,7 @@ func SetupRouter(h *server.Hertz, handlers *Handlers, wsServer *gateway.WsServer
 		userGroup.POST("/get_users_online_status", handlers.User.GetUsersOnlineStatus)
 	}
 
-	// Group routes (auth required)
+	// Group routes (JWT auth required)
 	groupGroup := h.Group("/group", middleware.JWTAuth())
 	{
 		groupGroup.POST("/create", handlers.Group.CreateGroup)
@@ -51,7 +51,7 @@ func SetupRouter(h *server.Hertz, handlers *Handlers, wsServer *gateway.WsServer
 		groupGroup.GET("/members", handlers.Group.GetGroupMembers)
 	}
 
-	// Message routes (auth required)
+	// Message routes (JWT auth required)
 	msgGroup := h.Group("/msg", middleware.JWTAuth())
 	{
 		msgGroup.POST("/send", handlers.Message.SendMessage)
@@ -59,7 +59,7 @@ func SetupRouter(h *server.Hertz, handlers *Handlers, wsServer *gateway.WsServer
 		msgGroup.GET("/max_seq", handlers.Message.GetMaxSeq)
 	}
 
-	// Conversation routes (auth required)
+	// Conversation routes (JWT auth required)
 	convGroup := h.Group("/conversation", middleware.JWTAuth())
 	{
 		convGroup.GET("/list", handlers.Conversation.GetConversationList)
@@ -74,6 +74,31 @@ func SetupRouter(h *server.Hertz, handlers *Handlers, wsServer *gateway.WsServer
 	h.GET("/ws", adaptor.HertzHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		wsServer.HandleConnection(r.Context(), w, r)
 	})))
+
+	// Internal service routes (service-to-service auth required)
+	internalGroup := h.Group("/internal", middleware.InternalAuth())
+	{
+		internalGroup.GET("/health", func(ctx context.Context, c *app.RequestContext) {
+			c.JSON(consts.StatusOK, map[string]string{"status": "ok"})
+		})
+		internalGroup.POST("/auth/register", handlers.Auth.Register)
+	}
+
+	// Internal user routes (service-to-service auth + acting user required)
+	internalUserGroup := h.Group("/internal/user", middleware.InternalAuthAsUser())
+	{
+		internalUserGroup.GET("/info", handlers.User.GetUserInfo)
+		internalUserGroup.GET("/profile/:user_id", handlers.User.GetUserInfoById)
+		internalUserGroup.PUT("/update", handlers.User.UpdateUserInfo)
+		internalUserGroup.POST("/batch_info", handlers.User.GetUsersInfo)
+		internalUserGroup.POST("/get_users_online_status", handlers.User.GetUsersOnlineStatus)
+	}
+
+	// Internal message routes (service-to-service auth + acting user required)
+	internalMsgGroup := h.Group("/internal/msg", middleware.InternalAuthAsUser())
+	{
+		internalMsgGroup.POST("/send", handlers.Message.SendMessage)
+	}
 }
 
 // Handlers holds all HTTP handlers

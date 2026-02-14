@@ -36,6 +36,14 @@ external_jwt:
   default_role: "user"
   default_platform_id: 1
 
+internal_auth:
+  enabled: true
+  secret: "nexo-im-internal-local"
+  allowed_services:
+    - "app_gateway"
+    - "job_worker"
+  max_skew_seconds: 300
+
 websocket:
   max_conn_num: 10000
   max_message_size: 51200

@@ -14,6 +14,15 @@ func (c *Client) SendMessage(ctx context.Context, req *SendMessageRequest) (*Mes
 	return &result, nil
 }
 
+// InternalSendMessage sends a message via internal route.
+func (c *Client) InternalSendMessage(ctx context.Context, req *SendMessageRequest, opts ...RequestOption) (*MessageInfo, error) {
+	var result MessageInfo
+	if err := c.post(ctx, "/internal/msg/send", req, &result, opts...); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
 // SendTextMessage is a convenience method to send a text message to a single user
 func (c *Client) SendTextMessage(ctx context.Context, clientMsgId, recvId, text string) (*MessageInfo, error) {
 	return c.SendMessage(ctx, &SendMessageRequest{

@@ -2,6 +2,8 @@ package middleware
 
 import (
 	"context"
+	"errors"
+	"os"
 	"strings"
 
 	"github.com/cloudwego/hertz/pkg/app"
@@ -15,6 +17,10 @@ import (
 const (
 	// AuthorizationHeader is the header key for authorization
 	AuthorizationHeader = "Authorization"
+	// XTokenHeader is the fallback header key used by external systems
+	XTokenHeader = "X-Token"
+	// IgnoreAuthHeader can be used in TEST env to bypass auth
+	IgnoreAuthHeader = "Ignore-Auth"
 	// BearerPrefix is the prefix for bearer token
 	BearerPrefix = "Bearer "
 	// UserIdKey is the context key for user Id
@@ -26,20 +32,23 @@ const (
 // JWTAuth is the JWT authentication middleware
 func JWTAuth() app.HandlerFunc {
 	return func(ctx context.Context, c *app.RequestContext) {
-		authHeader := string(c.GetHeader(AuthorizationHeader))
-		if authHeader == "" {
+		if isTestEnv() && len(c.GetHeader(IgnoreAuthHeader)) != 0 {
+			c.Next(ctx)
+			return
+		}
+
+		tokenString, err := extractToken(c)
+		if errors.Is(err, errcode.ErrTokenMissing) {
 			response.ErrorWithCode(ctx, c, errcode.ErrTokenMissing)
 			c.Abort()
 			return
 		}
-
-		if !strings.HasPrefix(authHeader, BearerPrefix) {
+		if err != nil {
 			response.ErrorWithCode(ctx, c, errcode.ErrTokenInvalid)
 			c.Abort()
 			return
 		}
 
-		tokenString := strings.TrimPrefix(authHeader, BearerPrefix)
 		claims, err := ParseTokenWithFallback(tokenString, config.GlobalConfig)
 		if err != nil {
 			response.ErrorWithCode(ctx, c, errcode.ErrTokenInvalid)
@@ -55,8 +64,41 @@ func JWTAuth() app.HandlerFunc {
 	}
 }
 
+func extractToken(c *app.RequestContext) (string, error) {
+	authHeader := strings.TrimSpace(string(c.GetHeader(AuthorizationHeader)))
+	if authHeader != "" {
+		if strings.HasPrefix(authHeader, BearerPrefix) {
+			tokenString := strings.TrimSpace(strings.TrimPrefix(authHeader, BearerPrefix))
+			if tokenString == "" {
+				return "", errcode.ErrTokenMissing
+			}
+			return tokenString, nil
+		}
+		// If Authorization is malformed, still allow X-Token as fallback for compatibility.
+		xToken := strings.TrimSpace(string(c.GetHeader(XTokenHeader)))
+		if xToken != "" {
+			return xToken, nil
+		}
+		return "", errcode.ErrTokenInvalid
+	}
+
+	xToken := strings.TrimSpace(string(c.GetHeader(XTokenHeader)))
+	if xToken == "" {
+		return "", errcode.ErrTokenMissing
+	}
+	return xToken, nil
+}
+
+func isTestEnv() bool {
+	return strings.EqualFold(strings.TrimSpace(os.Getenv("INFRA_ENV")), config.TEST)
+}
+
 // ParseTokenWithFallback tries nexo token first, then falls back to external token if enabled.
 func ParseTokenWithFallback(tokenString string, cfg *config.Config) (*jwt.Claims, error) {
+	if cfg == nil {
+		return nil, errcode.ErrTokenInvalid
+	}
+
 	// Try nexo native token first
 	claims, err := jwt.ParseToken(tokenString, cfg.JWT.Secret)
 	if err == nil {

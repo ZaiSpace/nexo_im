@@ -31,3 +31,23 @@ func (c *Client) LoginWithUserId(ctx context.Context, userId, password string, p
 		PlatformId: platformId,
 	})
 }
+
+// InternalRegister registers a user through internal service route.
+func (c *Client) InternalRegister(ctx context.Context, req *RegisterRequest) (*UserInfo, error) {
+	var result UserInfo
+	if err := c.post(ctx, "/internal/auth/register", req, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// UseExternalToken sets an externally issued token for subsequent requests.
+func (c *Client) UseExternalToken(token string) {
+	c.SetToken(token)
+}
+
+// EnableTestAuthBypass enables/disables sending Ignore-Auth header.
+// This only takes effect on server side when INFRA_ENV=TEST.
+func (c *Client) EnableTestAuthBypass(enabled bool) {
+	c.SetIgnoreAuth(enabled)
+}

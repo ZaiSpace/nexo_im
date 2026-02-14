@@ -1,5 +1,11 @@
 package sdk
 
+const (
+	BaseUrl            = "http://localhost:8080"
+	ServiceName        = "island-app-gateway"
+	InternalAuthSecret = "zai_space"
+)
+
 // Session types
 const (
 	SessionTypeSingle = 1 // Single chat

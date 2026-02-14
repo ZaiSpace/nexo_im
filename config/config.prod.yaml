@@ -1,39 +1,50 @@
 server:
   http_port: 8080
   ws_port: 8080
-  mode: release
+  mode: debug  # debug, release
+  # Allowed origins for WebSocket CORS validation
+  # Use "*" only in development, specify exact origins in production
   allowed_origins:
-    - "https://your-production-domain.com"
+    - "http://localhost:3000"
+    - "http://localhost:8080"
 
 mysql:
-  host: 127.0.0.1
+  host: island-test.cqf8c8cyquuq.us-east-1.rds.amazonaws.com
   port: 3306
-  user: root
-  password: ""
+  user: admin
+  password: "qsKRnLVJC3FPQdh9"
   database: nexo_im
   charset: utf8mb4
   max_open_conns: 100
   max_idle_conns: 10
 
 redis:
-  host: 127.0.0.1
+  host: clustercfg.island-test.zacd3o.use1.cache.amazonaws.com
   port: 6379
   password: ""
   db: 0
-  key_prefix: "nexo_im:"
-  cluster: false
+  key_prefix: "nexo_im:"  # Redis key prefix to avoid conflicts with other systems
+  cluster: true
   tls: true
   addrs: []
 
 jwt:
-  secret: "change-me-in-production"
-  expire_hours: 168
+  secret: "nexo-im-secret-key-change-in-production"
+  expire_hours: 168  # 7 days
 
+# External JWT: enable to accept tokens from another backend system
 external_jwt:
-  enabled: false
-  secret: ""
-  default_role: "user"
-  default_platform_id: 1
+  enabled: true
+  secret: "account_auth_test"
+  default_role: "user"      # "user" or "agent"
+  default_platform_id: 1    # Web
+
+internal_auth:
+  enabled: true
+  secret: "zai_space"
+  allowed_services:
+    - "island-app-gateway"
+  max_skew_seconds: 300
 
 websocket:
   max_conn_num: 10000

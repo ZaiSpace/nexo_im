@@ -48,3 +48,50 @@ func (c *Client) GetUsersOnlineStatus(ctx context.Context, userIds []string) ([]
 	}
 	return result, nil
 }
+
+// InternalGetUserInfo gets current user info via internal route.
+func (c *Client) InternalGetUserInfo(ctx context.Context, opts ...RequestOption) (*UserInfo, error) {
+	var result UserInfo
+	if err := c.get(ctx, "/internal/user/info", nil, &result, opts...); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// InternalGetUserInfoById gets a user's info by Id via internal route.
+func (c *Client) InternalGetUserInfoById(ctx context.Context, userId string, opts ...RequestOption) (*UserInfo, error) {
+	var result UserInfo
+	if err := c.get(ctx, "/internal/user/profile/"+userId, nil, &result, opts...); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// InternalUpdateUserInfo updates current user info via internal route.
+func (c *Client) InternalUpdateUserInfo(ctx context.Context, req *UpdateUserRequest, opts ...RequestOption) (*UserInfo, error) {
+	var result UserInfo
+	if err := c.put(ctx, "/internal/user/update", req, &result, opts...); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// InternalGetUsersInfo gets multiple users' info via internal route.
+func (c *Client) InternalGetUsersInfo(ctx context.Context, userIds []string, opts ...RequestOption) ([]*UserInfo, error) {
+	var result []*UserInfo
+	req := &GetUsersInfoRequest{UserIds: userIds}
+	if err := c.post(ctx, "/internal/user/batch_info", req, &result, opts...); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+// InternalGetUsersOnlineStatus gets users' online status via internal route.
+func (c *Client) InternalGetUsersOnlineStatus(ctx context.Context, userIds []string, opts ...RequestOption) ([]*OnlineStatus, error) {
+	var result []*OnlineStatus
+	req := &GetUsersOnlineStatusRequest{UserIds: userIds}
+	if err := c.post(ctx, "/internal/user/get_users_online_status", req, &result, opts...); err != nil {
+		return nil, err
+	}
+	return result, nil
+}

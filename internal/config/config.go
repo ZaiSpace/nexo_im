@@ -21,12 +21,13 @@ const (
 
 // Config holds all configuration
 type Config struct {
-	Server      ServerConfig      `mapstructure:"server"`
-	MySQL       MySQLConfig       `mapstructure:"mysql"`
-	Redis       RedisConfig       `mapstructure:"redis"`
-	JWT         JWTConfig         `mapstructure:"jwt"`
-	ExternalJWT ExternalJWTConfig `mapstructure:"external_jwt"`
-	WebSocket   WebSocketConfig   `mapstructure:"websocket"`
+	Server       ServerConfig       `mapstructure:"server"`
+	MySQL        MySQLConfig        `mapstructure:"mysql"`
+	Redis        RedisConfig        `mapstructure:"redis"`
+	JWT          JWTConfig          `mapstructure:"jwt"`
+	ExternalJWT  ExternalJWTConfig  `mapstructure:"external_jwt"`
+	InternalAuth InternalAuthConfig `mapstructure:"internal_auth"`
+	WebSocket    WebSocketConfig    `mapstructure:"websocket"`
 }
 
 // ServerConfig holds server configuration
@@ -88,6 +89,14 @@ type ExternalJWTConfig struct {
 	Secret            string `mapstructure:"secret"`
 	DefaultRole       string `mapstructure:"default_role"`        // "user" or "agent", defaults to "user"
 	DefaultPlatformId int    `mapstructure:"default_platform_id"` // defaults to PlatformIdWeb(5)
+}
+
+// InternalAuthConfig holds internal service-to-service auth configuration
+type InternalAuthConfig struct {
+	Enabled         bool     `mapstructure:"enabled"`
+	Secret          string   `mapstructure:"secret"`
+	AllowedServices []string `mapstructure:"allowed_services"`
+	MaxSkewSeconds  int64    `mapstructure:"max_skew_seconds"`
 }
 
 // WebSocketConfig holds WebSocket configuration
@@ -186,6 +195,9 @@ func Load(configPath string) (*Config, error) {
 	}
 	if cfg.ExternalJWT.DefaultPlatformId == 0 {
 		cfg.ExternalJWT.DefaultPlatformId = 1 // ios
+	}
+	if cfg.InternalAuth.MaxSkewSeconds == 0 {
+		cfg.InternalAuth.MaxSkewSeconds = 300
 	}
 	if cfg.WebSocket.MaxConnNum == 0 {
 		cfg.WebSocket.MaxConnNum = 10000
