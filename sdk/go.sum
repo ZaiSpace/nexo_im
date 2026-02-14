@@ -1,3 +1,5 @@
+github.com/ZaiSpace/nexo_im/common v0.0.0-20260213143338-3213703ea0a7 h1:2E+ZsoB+HG7RWGFFXiBMzn5U0MgpDXVJKoxxlvsVKC0=
+github.com/ZaiSpace/nexo_im/common v0.0.0-20260213143338-3213703ea0a7/go.mod h1:Ql6lqad2C6XjcEebjLKJc3d3DaCWO3GC8Fwpj16JLxg=
 github.com/bytedance/gopkg v0.1.1 h1:3azzgSkiaw79u24a+w9arfH8OfnQQ4MHUt9lJFREEaE=
 github.com/bytedance/gopkg v0.1.1/go.mod h1:576VvJ+eJgyCzdjS+c4+77QF3p7ubbtiKARP3TxducM=
 github.com/bytedance/sonic v1.14.0 h1:/OfKt8HFw0kh2rj8N0F6C/qPGRESq0BbaNZgcNXXzQQ=

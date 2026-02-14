@@ -5,6 +5,7 @@ go 1.25
 require github.com/cloudwego/hertz v0.10.3
 
 require (
+	github.com/ZaiSpace/nexo_im/common v0.0.0-20260213143338-3213703ea0a7 // indirect
 	github.com/bytedance/gopkg v0.1.1 // indirect
 	github.com/bytedance/sonic v1.14.0 // indirect
 	github.com/bytedance/sonic/loader v0.3.0 // indirect
