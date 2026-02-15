@@ -1,0 +1,226 @@
+### nexo_im manual integration requests (non-/internal routes)
+### Usage: VSCode REST Client / IntelliJ HTTP Client
+
+@baseUrl = http://54.196.109.226:8080
+@wsBaseUrl = ws://54.196.109.226:8080
+@contentType = application/json
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxMjQyMTA2ODQ0OTM5NTIsImRldmljZV9pZCI6MCwiaXNzIjoid2VhdmVyX2FjY291bnQiLCJleHAiOjE3NzE2OTM3NzEsIm5iZiI6MTc3MTA4ODk3MH0.XYSTS601JbsXx0IIQCSOIC5Mi4xEqcsLsh1ypx65Y0A
+@otherToken = replace_with_other_user_login_token
+@userId = http_test_user_001
+@otherUserId = http_test_user_002
+@password = 123456
+@platformId = 5
+@groupId = replace_with_group_id
+@singleConversationId = si_{{userId}}:{{otherUserId}}
+@groupConversationId = sg_{{groupId}}
+@clientMsgIdSingle = http-client-msg-single-001
+@clientMsgIdGroup = http-client-msg-group-001
+
+### Health check
+GET {{baseUrl}}/health
+
+### Auth register
+POST {{baseUrl}}/auth/register
+Content-Type: {{contentType}}
+
+{
+  "user_id": "{{userId}}",
+  "nickname": "HTTP Test User 1",
+  "password": "{{password}}",
+  "avatar": "https://example.com/avatar1.png"
+}
+
+### Auth register (second user for single/group tests)
+POST {{baseUrl}}/auth/register
+Content-Type: {{contentType}}
+
+{
+  "user_id": "{{otherUserId}}",
+  "nickname": "HTTP Test User 2",
+  "password": "{{password}}",
+  "avatar": "https://example.com/avatar2.png"
+}
+
+### Auth login
+POST {{baseUrl}}/auth/login
+Content-Type: {{contentType}}
+
+{
+  "user_id": "{{userId}}",
+  "password": "{{password}}",
+  "platform_id": {{platformId}}
+}
+
+### Auth login (second user, fill result token into @otherToken)
+POST {{baseUrl}}/auth/login
+Content-Type: {{contentType}}
+
+{
+  "user_id": "{{otherUserId}}",
+  "password": "{{password}}",
+  "platform_id": {{platformId}}
+}
+
+### User get current user info
+GET {{baseUrl}}/user/info
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+### User get profile by user_id
+GET {{baseUrl}}/user/profile/{{otherUserId}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+### User update user info
+PUT {{baseUrl}}/user/update
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "nickname": "HTTP Updated User",
+  "avatar": "https://example.com/avatar-updated.png",
+  "extra": "{\"source\":\"http-client\"}"
+}
+
+### User batch get users info
+POST {{baseUrl}}/user/batch_info
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "user_ids": ["{{userId}}", "{{otherUserId}}"]
+}
+
+### User get users online status
+POST {{baseUrl}}/user/get_users_online_status
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "user_ids": ["{{userId}}", "{{otherUserId}}"]
+}
+
+### Group create group
+POST {{baseUrl}}/group/create
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "name": "HTTP Test Group",
+  "introduction": "Created by HTTP client",
+  "avatar": "https://example.com/group.png"
+}
+
+### Group join group
+POST {{baseUrl}}/group/join
+Content-Type: {{contentType}}
+Authorization: Bearer {{otherToken}}
+
+{
+  "group_id": "{{groupId}}",
+  "inviter_id": "{{userId}}"
+}
+
+### Group quit group
+POST {{baseUrl}}/group/quit
+Content-Type: {{contentType}}
+Authorization: Bearer {{otherToken}}
+
+{
+  "group_id": "{{groupId}}"
+}
+
+### Group get group info
+GET {{baseUrl}}/group/info?group_id={{groupId}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+### Group get group members
+GET {{baseUrl}}/group/members?group_id={{groupId}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+### Message send single message
+POST {{baseUrl}}/msg/send
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "client_msg_id": "{{clientMsgIdSingle}}",
+  "recv_id": "{{otherUserId}}",
+  "session_type": 1,
+  "msg_type": 1,
+  "content": {
+    "text": "hello from http client"
+  }
+}
+
+### Message send group message
+POST {{baseUrl}}/msg/send
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "client_msg_id": "{{clientMsgIdGroup}}",
+  "group_id": "{{groupId}}",
+  "session_type": 2,
+  "msg_type": 1,
+  "content": {
+    "text": "hello group from http client"
+  }
+}
+
+### Message pull messages (single conversation)
+GET {{baseUrl}}/msg/pull?conversation_id={{singleConversationId}}&begin_seq=1&end_seq=0&limit=20
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+### Message get max seq (single conversation)
+GET {{baseUrl}}/msg/max_seq?conversation_id={{singleConversationId}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+### Conversation get conversation list
+GET {{baseUrl}}/conversation/list
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+### Conversation get conversation info
+GET {{baseUrl}}/conversation/info?conversation_id={{singleConversationId}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+### Conversation update conversation
+PUT {{baseUrl}}/conversation/update?conversation_id={{singleConversationId}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "recv_msg_opt": 0,
+  "is_pinned": true
+}
+
+### Conversation mark read
+POST {{baseUrl}}/conversation/mark_read
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "conversation_id": "{{singleConversationId}}",
+  "read_seq": 1
+}
+
+### Conversation get max read seq
+GET {{baseUrl}}/conversation/max_read_seq?conversation_id={{singleConversationId}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+### Conversation get unread count
+GET {{baseUrl}}/conversation/unread_count?conversation_id={{singleConversationId}}&read_seq=0
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+### WebSocket connect
+### Some HTTP clients support ws requests directly.
+### If unsupported, use websocket tools (wscat/Postman) with the same URL.
+WEBSOCKET {{wsBaseUrl}}/ws?token={{token}}

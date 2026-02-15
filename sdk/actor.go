@@ -44,6 +44,7 @@ func MGetActorFromUserIds(userIds []string) ([]*common.Actor, error) {
 		if err != nil {
 			return nil, err
 		}
+		ret = append(ret, a)
 	}
 	return ret, nil
 }

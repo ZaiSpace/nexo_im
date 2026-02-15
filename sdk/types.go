@@ -2,9 +2,14 @@ package sdk
 
 // Response represents the standard API response
 type Response struct {
-	Code int         `json:"code"`
-	Msg  string      `json:"msg"`
-	Data interface{} `json:"data,omitempty"`
+	Code    int         `json:"code"`
+	Message string      `json:"message"`
+	Data    interface{} `json:"data,omitempty"`
+}
+
+// ErrorMessage returns the first non-empty error message field.
+func (r *Response) ErrorMessage() string {
+	return r.Message
 }
 
 // UserInfo represents public user info

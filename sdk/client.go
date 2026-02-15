@@ -233,7 +233,7 @@ func (c *Client) request(ctx context.Context, method, path string, body any, res
 
 	// Check for API error
 	if apiResp.Code != 0 {
-		return &Error{Code: apiResp.Code, Msg: apiResp.Msg}
+		return &Error{Code: apiResp.Code, Msg: apiResp.ErrorMessage()}
 	}
 
 	// Decode data if result is provided
@@ -281,7 +281,7 @@ func (c *Client) get(ctx context.Context, path string, params map[string]string,
 
 	// Check for API error
 	if apiResp.Code != 0 {
-		return &Error{Code: apiResp.Code, Msg: apiResp.Msg}
+		return &Error{Code: apiResp.Code, Msg: apiResp.ErrorMessage()}
 	}
 
 	// Decode data if result is provided
