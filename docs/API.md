@@ -767,6 +767,23 @@ GET /msg/max_seq?conversation_id=xxx
 
 ```
 GET /conversation/list
+POST /conversation/list
+```
+
+**请求参数（可选）**
+
+> `GET` 方式通过 Query 传参，`POST` 方式通过 JSON Body 传参。
+
+| 字段 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| with_last_message | bool | 否 | true | 是否返回每个会话的最新一条消息（`last_message`） |
+
+**请求示例（POST）**
+
+```json
+{
+  "with_last_message": true
+}
 ```
 
 **响应示例**
@@ -786,7 +803,20 @@ GET /conversation/list
       "unread_count": 5,
       "max_seq": 100,
       "read_seq": 95,
-      "updated_at": 1706688000000
+      "updated_at": 1706688000000,
+      "last_message": {
+        "id": 12345,
+        "conversation_id": "si_user001:user002",
+        "seq": 100,
+        "client_msg_id": "msg_uuid_100",
+        "sender_id": "user001",
+        "session_type": 1,
+        "msg_type": 1,
+        "content": {
+          "text": "最后一条消息"
+        },
+        "send_at": 1706688000000
+      }
     },
     {
       "conversation_id": "sg_1234567890",
@@ -798,11 +828,27 @@ GET /conversation/list
       "unread_count": 10,
       "max_seq": 200,
       "read_seq": 190,
-      "updated_at": 1706688000000
+      "updated_at": 1706688000000,
+      "last_message": {
+        "id": 22345,
+        "conversation_id": "sg_1234567890",
+        "seq": 200,
+        "client_msg_id": "msg_uuid_200",
+        "sender_id": "user009",
+        "session_type": 2,
+        "msg_type": 1,
+        "content": {
+          "text": "群里最后一条消息"
+        },
+        "send_at": 1706688000001
+      }
     }
   ]
 }
 ```
+
+**说明**
+- 当 `with_last_message=false` 时，响应中不会包含 `last_message` 字段。
 
 **会话类型说明**
 
@@ -1014,7 +1060,7 @@ GET /conversation/unread_count?conversation_id=xxx
 **请求**
 
 ```
-GET /ws?token=xxx
+GET /ws?token=xxx&send_id=user001&platform_id=5&sdk_type=go
 ```
 
 **查询参数**
@@ -1022,11 +1068,16 @@ GET /ws?token=xxx
 | 字段 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | token | string | 是 | JWT Token |
+| send_id | string | 是 | 当前登录用户 ID（需与 token 对应用户一致） |
+| platform_id | int | 否 | 平台 ID，默认取 token 中 platform_id |
+| sdk_type | string | 否 | SDK 类型，如 `go`、`js` |
 
 **连接示例**
 
 ```javascript
-const ws = new WebSocket('ws://localhost:8080/ws?token=eyJhbGciOiJIUzI1NiIs...');
+const ws = new WebSocket(
+  'ws://localhost:8080/ws?token=eyJhbGciOiJIUzI1NiIs...&send_id=user001&platform_id=1&sdk_type=js'
+);
 
 ws.onopen = function() {
   console.log('Connected');
@@ -1042,24 +1093,220 @@ ws.onclose = function() {
 };
 ```
 
-### 消息推送格式
+### 客户端请求格式
 
-服务端推送的消息格式：
+客户端发送消息统一使用如下 envelope：
+
+```json
+{
+  "req_identifier": 1003,
+  "msg_incr": "1",
+  "operation_id": "op_001",
+  "send_id": "user001",
+  "data": {}
+}
+```
+
+字段说明：
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| req_identifier | int | 是 | 请求类型 |
+| msg_incr | string | 否 | 客户端消息序号/追踪 ID |
+| operation_id | string | 否 | 操作 ID |
+| send_id | string | 否 | 发送者 ID（传了需与 token 用户一致） |
+| data | object | 是 | 业务请求体 |
+
+请求类型：
+
+| req_identifier | 说明 |
+|----------------|------|
+| 1001 | 获取会话最新 seq |
+| 1002 | 按 seq 列表拉消息 |
+| 1003 | 发送消息 |
+| 1005 | 拉取消息 |
+| 1006 | 获取会话 max/read seq |
+
+### data 字段结构
+
+不同 `req_identifier` 的 `data` 结构如下。
+
+#### 1001 获取会话最新 seq
+
+**请求 data**
+
+```json
+{
+  "conversation_ids": ["si_user001:user002", "sg_group001"]
+}
+```
+
+**响应 data**
+
+```json
+{
+  "seqs": {
+    "si_user001:user002": 10,
+    "sg_group001": 123
+  }
+}
+```
+
+#### 1002 按 seq 列表拉消息
+
+**请求 data**
 
 ```json
 {
   "conversation_id": "si_user001:user002",
-  "seq": 1,
-  "client_msg_id": "msg_uuid_001",
-  "sender_id": "user001",
-  "recv_id": "user002",
-  "group_id": "",
-  "session_type": 1,
-  "msg_type": 1,
-  "content": {
-    "text": "你好！"
-  },
-  "send_at": 1706688000000
+  "seq_list": [1, 2, 3]
+}
+```
+
+#### 1003 发送消息
+
+**请求 data 字段说明**
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| client_msg_id | string | 是 | 客户端消息唯一 ID（幂等键） |
+| recv_id | string | 单聊必填 | 接收者用户 ID（单聊） |
+| group_id | string | 群聊必填 | 群 ID（群聊） |
+| session_type | int | 是 | 会话类型：1=单聊，2=群聊 |
+| msg_type | int | 是 | 消息类型：1=text, 2=image, 3=video, 4=audio, 5=file, 100=custom |
+| content.text | string | 否 | 文本内容 |
+| content.image | string | 否 | 图片内容 |
+| content.video | string | 否 | 视频内容 |
+| content.audio | string | 否 | 音频内容 |
+| content.file | string | 否 | 文件内容 |
+| content.custom | string | 否 | 自定义内容 |
+
+**响应 data**
+
+```json
+{
+  "server_msg_id": 123,
+  "conversation_id": "si_user001:user002",
+  "seq": 10,
+  "client_msg_id": "msg_1739851200000",
+  "send_at": 1739851200000
+}
+```
+
+#### 1005 拉取消息
+
+**请求 data**
+
+```json
+{
+  "conversation_id": "si_user001:user002",
+  "begin_seq": 1,
+  "end_seq": 100,
+  "limit": 50
+}
+```
+
+**响应 data**
+
+```json
+{
+  "messages": [],
+  "max_seq": 100
+}
+```
+
+#### 1006 获取会话 max/read seq
+
+**请求 data**
+
+```json
+{
+  "conversation_id": "si_user001:user002"
+}
+```
+
+**响应 data**
+
+```json
+{
+  "max_seq": 100,
+  "read_seq": 88,
+  "unread_count": 12
+}
+```
+
+### 发送消息示例（1003）
+
+**请求**
+
+```json
+{
+  "req_identifier": 1003,
+  "msg_incr": "1",
+  "operation_id": "op_send_001",
+  "send_id": "user001",
+  "data": {
+    "client_msg_id": "msg_1739851200000",
+    "recv_id": "user002",
+    "session_type": 1,
+    "msg_type": 1,
+    "content": {
+      "text": "你好！"
+    }
+  }
+}
+```
+
+**响应**
+
+```json
+{
+  "req_identifier": 1003,
+  "msg_incr": "1",
+  "operation_id": "op_send_001",
+  "err_code": 0,
+  "err_msg": "",
+  "data": {
+    "server_msg_id": 123,
+    "conversation_id": "si_user001:user002",
+    "seq": 10,
+    "client_msg_id": "msg_1739851200000",
+    "send_at": 1739851200000
+  }
+}
+```
+
+### 服务端推送格式
+
+服务端也使用统一 envelope 返回推送消息（`req_identifier=2001`）：
+
+```json
+{
+  "req_identifier": 2001,
+  "msg_incr": "",
+  "operation_id": "",
+  "err_code": 0,
+  "err_msg": "",
+  "data": {
+    "msgs": {
+      "si_user001:user002": [
+        {
+          "server_msg_id": 123,
+          "conversation_id": "si_user001:user002",
+          "seq": 10,
+          "client_msg_id": "msg_1739851200000",
+          "sender_id": "user001",
+          "recv_id": "user002",
+          "session_type": 1,
+          "msg_type": 1,
+          "content": {
+            "text": "你好！"
+          },
+          "send_at": 1739851200000
+        }
+      ]
+    }
+  }
 }
 ```
 

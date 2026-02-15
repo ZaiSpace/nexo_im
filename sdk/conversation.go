@@ -7,8 +7,16 @@ import (
 
 // GetConversationList gets all conversations for the current user
 func (c *Client) GetConversationList(ctx context.Context) ([]*ConversationInfo, error) {
+	return c.GetConversationListWithLastMessage(ctx, true)
+}
+
+// GetConversationListWithLastMessage gets conversations and controls whether latest message is included.
+func (c *Client) GetConversationListWithLastMessage(ctx context.Context, withLastMessage bool) ([]*ConversationInfo, error) {
+	req := &GetConversationListRequest{
+		WithLastMessage: &withLastMessage,
+	}
 	var result []*ConversationInfo
-	if err := c.get(ctx, "/conversation/list", nil, &result); err != nil {
+	if err := c.post(ctx, "/conversation/list", req, &result); err != nil {
 		return nil, err
 	}
 	return result, nil

@@ -126,3 +126,40 @@ func (r *MessageRepo) GetMessageCountAfterSeq(ctx context.Context, conversationI
 		Count(&count).Error
 	return count, err
 }
+
+// BatchGetByConvSeq gets messages by conversation_id + seq pairs.
+// Returns map keyed by conversation_id.
+func (r *MessageRepo) BatchGetByConvSeq(ctx context.Context, convMaxSeq map[string]int64) (map[string]*entity.Message, error) {
+	result := make(map[string]*entity.Message, len(convMaxSeq))
+	if len(convMaxSeq) == 0 {
+		return result, nil
+	}
+
+	query := r.db.WithContext(ctx).Model(&entity.Message{})
+	condCount := 0
+	for conversationId, seq := range convMaxSeq {
+		if conversationId == "" || seq <= 0 {
+			continue
+		}
+		if condCount == 0 {
+			query = query.Where("(conversation_id = ? AND seq = ?)", conversationId, seq)
+		} else {
+			query = query.Or("(conversation_id = ? AND seq = ?)", conversationId, seq)
+		}
+		condCount++
+	}
+
+	if condCount == 0 {
+		return result, nil
+	}
+
+	var messages []*entity.Message
+	if err := query.Find(&messages).Error; err != nil {
+		return nil, err
+	}
+
+	for _, msg := range messages {
+		result[msg.ConversationId] = msg
+	}
+	return result, nil
+}

@@ -63,6 +63,7 @@ func SetupRouter(h *server.Hertz, handlers *Handlers, wsServer *gateway.WsServer
 	convGroup := h.Group("/conversation", middleware.JWTAuth())
 	{
 		convGroup.GET("/list", handlers.Conversation.GetConversationList)
+		convGroup.POST("/list", handlers.Conversation.GetConversationList)
 		convGroup.GET("/info", handlers.Conversation.GetConversation)
 		convGroup.PUT("/update", handlers.Conversation.UpdateConversation)
 		convGroup.POST("/mark_read", handlers.Conversation.MarkRead)

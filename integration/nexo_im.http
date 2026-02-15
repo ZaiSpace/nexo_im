@@ -185,6 +185,15 @@ GET {{baseUrl}}/conversation/list
 Content-Type: {{contentType}}
 Authorization: Bearer {{token}}
 
+### Conversation get conversation list (with latest message option)
+POST {{baseUrl}}/conversation/list
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "with_last_message": true
+}
+
 ### Conversation get conversation info
 GET {{baseUrl}}/conversation/info?conversation_id={{singleConversationId}}
 Content-Type: {{contentType}}

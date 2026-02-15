@@ -12,6 +12,11 @@ import (
 	"github.com/ZaiSpace/nexo_im/pkg/response"
 )
 
+// GetConversationListRequest represents conversation list request options.
+type GetConversationListRequest struct {
+	WithLastMessage *bool `json:"with_last_message" query:"with_last_message"`
+}
+
 // ConversationHandler handles conversation-related requests
 type ConversationHandler struct {
 	convService *service.ConversationService
@@ -30,7 +35,18 @@ func (h *ConversationHandler) GetConversationList(ctx context.Context, c *app.Re
 		return
 	}
 
-	convs, err := h.convService.GetUserConversations(ctx, userId)
+	// Default includes latest message for backward compatibility.
+	withLastMessage := true
+	var req GetConversationListRequest
+	if err := c.BindAndValidate(&req); err != nil {
+		response.ErrorWithCode(ctx, c, errcode.ErrInvalidParam)
+		return
+	}
+	if req.WithLastMessage != nil {
+		withLastMessage = *req.WithLastMessage
+	}
+
+	convs, err := h.convService.GetUserConversations(ctx, userId, withLastMessage)
 	if err != nil {
 		response.Error(ctx, c, err)
 		return

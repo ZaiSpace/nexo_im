@@ -3,15 +3,16 @@ package service
 import (
 	"context"
 
-	"github.com/mbeoliero/kit/log"
 	"github.com/ZaiSpace/nexo_im/internal/entity"
 	"github.com/ZaiSpace/nexo_im/internal/repository"
 	"github.com/ZaiSpace/nexo_im/pkg/errcode"
+	"github.com/mbeoliero/kit/log"
 )
 
 // ConversationService handles conversation-related business logic
 type ConversationService struct {
 	convRepo *repository.ConversationRepo
+	msgRepo  *repository.MessageRepo
 	seqRepo  *repository.SeqRepo
 	repos    *repository.Repositories
 }
@@ -20,21 +21,44 @@ type ConversationService struct {
 func NewConversationService(repos *repository.Repositories) *ConversationService {
 	return &ConversationService{
 		convRepo: repos.Conversation,
+		msgRepo:  repos.Message,
 		seqRepo:  repos.Seq,
 		repos:    repos,
 	}
 }
 
-// GetUserConversations gets all conversations for a user
-func (s *ConversationService) GetUserConversations(ctx context.Context, userId string) ([]*entity.ConversationInfo, error) {
+// GetUserConversations gets all conversations for a user.
+// withLastMessage controls whether to include the latest message for each conversation.
+func (s *ConversationService) GetUserConversations(ctx context.Context, userId string, withLastMessage bool) ([]*entity.ConversationInfo, error) {
 	convWithSeqs, err := s.convRepo.GetUserConversationsWithSeq(ctx, userId)
 	if err != nil {
 		log.CtxError(ctx, "get user conversations failed: user_id=%s, error=%v", userId, err)
 		return nil, errcode.ErrInternalServer
 	}
 
+	lastMsgMap := make(map[string]*entity.Message)
+	if withLastMessage {
+		convMaxSeq := make(map[string]int64, len(convWithSeqs))
+		for _, conv := range convWithSeqs {
+			if conv.MaxSeq > 0 {
+				convMaxSeq[conv.ConversationId] = conv.MaxSeq
+			}
+		}
+
+		lastMsgMap, err = s.msgRepo.BatchGetByConvSeq(ctx, convMaxSeq)
+		if err != nil {
+			log.CtxError(ctx, "batch get last messages failed: user_id=%s, error=%v", userId, err)
+			return nil, errcode.ErrInternalServer
+		}
+	}
+
 	result := make([]*entity.ConversationInfo, 0, len(convWithSeqs))
 	for _, conv := range convWithSeqs {
+		var lastMsg *entity.MessageInfo
+		if msg := lastMsgMap[conv.ConversationId]; msg != nil {
+			lastMsg = msg.ToMessageInfo()
+		}
+
 		info := &entity.ConversationInfo{
 			ConversationId:   conv.ConversationId,
 			ConversationType: conv.ConversationType,
@@ -46,6 +70,7 @@ func (s *ConversationService) GetUserConversations(ctx context.Context, userId s
 			MaxSeq:           conv.MaxSeq,
 			ReadSeq:          conv.ReadSeq,
 			UpdatedAt:        conv.UpdatedAt,
+			LastMessage:      lastMsg,
 		}
 		result = append(result, info)
 	}

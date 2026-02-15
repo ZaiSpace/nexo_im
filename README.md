@@ -182,7 +182,7 @@ websocket:
 
 | 路径 | 描述 |
 |------|------|
-| `/ws?token=xxx` | WebSocket 连接 |
+| `/ws?token=xxx&send_id=xxx&platform_id=5&sdk_type=go` | WebSocket 连接 |
 
 ## 数据模型
 

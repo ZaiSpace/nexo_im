@@ -18,6 +18,42 @@ type WSMessage struct {
 	Data json.RawMessage `json:"data"`
 }
 
+type wsProtocolResponse struct {
+	ReqIdentifier int32  `json:"req_identifier"`
+	MsgIncr       string `json:"msg_incr"`
+	OperationId   string `json:"operation_id"`
+	ErrCode       int    `json:"err_code"`
+	ErrMsg        string `json:"err_msg"`
+	Data          []byte `json:"data"`
+}
+
+type wsProtocolRequest struct {
+	ReqIdentifier int32  `json:"req_identifier"`
+	MsgIncr       string `json:"msg_incr"`
+	OperationId   string `json:"operation_id"`
+	SendId        string `json:"send_id"`
+	Data          []byte `json:"data"`
+}
+
+type wsSendMsgReq struct {
+	ClientMsgId string `json:"client_msg_id"`
+	RecvId      string `json:"recv_id,omitempty"`
+	GroupId     string `json:"group_id,omitempty"`
+	SessionType int32  `json:"session_type"`
+	MsgType     int32  `json:"msg_type"`
+	Content     struct {
+		Text string `json:"text,omitempty"`
+	} `json:"content"`
+}
+
+type wsSendMsgResp struct {
+	ServerMsgId    int64  `json:"server_msg_id"`
+	ConversationId string `json:"conversation_id"`
+	Seq            int64  `json:"seq"`
+	ClientMsgId    string `json:"client_msg_id"`
+	SendAt         int64  `json:"send_at"`
+}
+
 // WSClient is a WebSocket test client
 type WSClient struct {
 	conn     *websocket.Conn
@@ -84,7 +120,7 @@ func (c *WSClient) readLoop() {
 }
 
 // Send sends a message through WebSocket
-func (c *WSClient) Send(msg interface{}) error {
+func (c *WSClient) Send(msg any) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -113,6 +149,35 @@ func (c *WSClient) Close() error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return c.conn.Close()
+}
+
+func buildWebSocketURL(token, userId string) (string, error) {
+	u, err := url.Parse(testConfig.BaseURL)
+	if err != nil {
+		return "", fmt.Errorf("parse TEST_BASE_URL: %w", err)
+	}
+
+	wsScheme := "ws"
+	if u.Scheme == "https" {
+		wsScheme = "wss"
+	}
+
+	query := url.Values{}
+	if token != "" {
+		query.Set("token", token)
+	}
+	if userId != "" {
+		query.Set("send_id", userId)
+		query.Set("platform_id", "5")
+	}
+
+	wsURL := url.URL{
+		Scheme:   wsScheme,
+		Host:     u.Host,
+		Path:     "/ws",
+		RawQuery: query.Encode(),
+	}
+	return wsURL.String(), nil
 }
 
 func TestWebSocket_Connect(t *testing.T) {
@@ -293,4 +358,150 @@ func TestWebSocket_GroupMessage(t *testing.T) {
 		}
 		t.Logf("Member received: type=%s", memberMsg.Type)
 	})
+}
+
+func TestWebSocket_SendMessageToRemoteServer(t *testing.T) {
+	userId := generateUserId("ws_direct_send")
+	_, token := RegisterAndLogin(t, userId, "WS Direct Sender", "password123")
+
+	wsURL, err := buildWebSocketURL(token, userId)
+	if err != nil {
+		t.Fatalf("build websocket url failed: %v", err)
+	}
+
+	conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+	if err != nil {
+		t.Fatalf("dial websocket failed: %v", err)
+	}
+	defer conn.Close()
+
+	req := map[string]any{
+		"req_identifier": 9999,
+		"msg_incr":       "1",
+		"operation_id":   "ws_direct_send_test",
+		"send_id":        userId,
+		"data":           json.RawMessage(`{}`),
+	}
+
+	if err = conn.WriteJSON(req); err != nil {
+		t.Fatalf("write websocket message failed: %v", err)
+	}
+
+	if err = conn.SetReadDeadline(time.Now().Add(5 * time.Second)); err != nil {
+		t.Fatalf("set read deadline failed: %v", err)
+	}
+	_, respBytes, err := conn.ReadMessage()
+	if err != nil {
+		t.Fatalf("read websocket response failed: %v", err)
+	}
+
+	var resp wsProtocolResponse
+	if err = json.Unmarshal(respBytes, &resp); err != nil {
+		t.Fatalf("unmarshal websocket response failed: %v, raw=%s", err, string(respBytes))
+	}
+
+	if resp.ReqIdentifier != 9999 {
+		t.Fatalf("unexpected req_identifier: got %d want %d", resp.ReqIdentifier, 9999)
+	}
+	if resp.ErrCode == 0 {
+		t.Fatalf("expected non-zero err_code for unknown req_identifier, got %+v", resp)
+	}
+}
+
+func TestWebSocket_SendRealMessage(t *testing.T) {
+	senderID := generateUserId("ws_real_sender")
+	receiverID := generateUserId("ws_real_receiver")
+	_, senderToken := RegisterAndLogin(t, senderID, "WS Real Sender", "password123")
+	receiverClient, _ := RegisterAndLogin(t, receiverID, "WS Real Receiver", "password123")
+
+	wsURL, err := buildWebSocketURL(senderToken, senderID)
+	if err != nil {
+		t.Fatalf("build websocket url failed: %v", err)
+	}
+
+	conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+	if err != nil {
+		t.Fatalf("dial websocket failed: %v", err)
+	}
+	defer conn.Close()
+
+	sendReq := wsSendMsgReq{
+		ClientMsgId: generateClientMsgId(),
+		RecvId:      receiverID,
+		SessionType: SessionTypeSingle,
+		MsgType:     MsgTypeText,
+	}
+	sendReq.Content.Text = "websocket real send integration test"
+
+	data, err := json.Marshal(sendReq)
+	if err != nil {
+		t.Fatalf("marshal ws send req failed: %v", err)
+	}
+
+	req := wsProtocolRequest{
+		ReqIdentifier: 1003, // WSSendMsg
+		MsgIncr:       "1",
+		OperationId:   "ws_real_send_test",
+		SendId:        senderID,
+		Data:          data,
+	}
+
+	if err = conn.WriteJSON(req); err != nil {
+		t.Fatalf("write websocket request failed: %v", err)
+	}
+
+	if err = conn.SetReadDeadline(time.Now().Add(8 * time.Second)); err != nil {
+		t.Fatalf("set read deadline failed: %v", err)
+	}
+	_, respBytes, err := conn.ReadMessage()
+	if err != nil {
+		t.Fatalf("read websocket response failed: %v", err)
+	}
+
+	var resp wsProtocolResponse
+	if err = json.Unmarshal(respBytes, &resp); err != nil {
+		t.Fatalf("unmarshal websocket response failed: %v, raw=%s", err, string(respBytes))
+	}
+
+	if resp.ReqIdentifier != 1003 {
+		t.Fatalf("unexpected req_identifier: got %d want %d", resp.ReqIdentifier, 1003)
+	}
+	if resp.ErrCode != 0 {
+		t.Fatalf("expected err_code=0, got err_code=%d err_msg=%s", resp.ErrCode, resp.ErrMsg)
+	}
+
+	var sendResp wsSendMsgResp
+	if err = json.Unmarshal(resp.Data, &sendResp); err != nil {
+		t.Fatalf("unmarshal send response data failed: %v", err)
+	}
+	t.Log(sendResp)
+	if sendResp.ClientMsgId != sendReq.ClientMsgId {
+		t.Fatalf("client_msg_id mismatch: got %s want %s", sendResp.ClientMsgId, sendReq.ClientMsgId)
+	}
+	if sendResp.ConversationId == "" || sendResp.Seq <= 0 {
+		t.Fatalf("invalid send response: %+v", sendResp)
+	}
+
+	// Verify message can be pulled by receiver, which indirectly verifies persistence.
+	pullResp, err := receiverClient.GET(fmt.Sprintf(
+		"/msg/pull?conversation_id=%s&begin_seq=%d&end_seq=%d&limit=10",
+		sendResp.ConversationId, sendResp.Seq, sendResp.Seq,
+	))
+	if err != nil {
+		t.Fatalf("receiver pull message failed: %v", err)
+	}
+	AssertSuccess(t, pullResp, "receiver pull should succeed")
+
+	var pulled PullMessagesResponse
+	if err = pullResp.ParseData(&pulled); err != nil {
+		t.Fatalf("parse pull response failed: %v", err)
+	}
+	if len(pulled.Messages) == 0 {
+		t.Fatalf("pull returned no messages for conversation=%s seq=%d", sendResp.ConversationId, sendResp.Seq)
+	}
+
+	last := pulled.Messages[len(pulled.Messages)-1]
+	if last.ClientMsgId != sendReq.ClientMsgId {
+		t.Fatalf("pulled client_msg_id mismatch: got %s want %s", last.ClientMsgId, sendReq.ClientMsgId)
+	}
 }

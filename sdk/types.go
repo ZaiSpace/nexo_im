@@ -46,16 +46,17 @@ type MessageInfo struct {
 
 // ConversationInfo represents conversation info
 type ConversationInfo struct {
-	ConversationId   string `json:"conversation_id"`
-	ConversationType int32  `json:"conversation_type"`
-	PeerUserId       string `json:"peer_user_id,omitempty"`
-	GroupId          string `json:"group_id,omitempty"`
-	RecvMsgOpt       int32  `json:"recv_msg_opt"`
-	IsPinned         bool   `json:"is_pinned"`
-	UnreadCount      int64  `json:"unread_count"`
-	MaxSeq           int64  `json:"max_seq"`
-	ReadSeq          int64  `json:"read_seq"`
-	UpdatedAt        int64  `json:"updated_at"`
+	ConversationId   string       `json:"conversation_id"`
+	ConversationType int32        `json:"conversation_type"`
+	PeerUserId       string       `json:"peer_user_id,omitempty"`
+	GroupId          string       `json:"group_id,omitempty"`
+	RecvMsgOpt       int32        `json:"recv_msg_opt"`
+	IsPinned         bool         `json:"is_pinned"`
+	UnreadCount      int64        `json:"unread_count"`
+	MaxSeq           int64        `json:"max_seq"`
+	ReadSeq          int64        `json:"read_seq"`
+	UpdatedAt        int64        `json:"updated_at"`
+	LastMessage      *MessageInfo `json:"last_message,omitempty"`
 }
 
 // GroupInfo represents group info
@@ -181,6 +182,11 @@ type PullMessagesResponse struct {
 type UpdateConversationRequest struct {
 	RecvMsgOpt *int32 `json:"recv_msg_opt,omitempty"`
 	IsPinned   *bool  `json:"is_pinned,omitempty"`
+}
+
+// GetConversationListRequest represents conversation list request
+type GetConversationListRequest struct {
+	WithLastMessage *bool `json:"with_last_message,omitempty"`
 }
 
 // MarkReadRequest represents mark read request
