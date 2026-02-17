@@ -67,6 +67,7 @@ CREATE TABLE IF NOT EXISTS conversations (
     updated_at BIGINT NOT NULL,
     UNIQUE KEY uk_owner_conv (owner_id, conversation_id),
     INDEX idx_owner (owner_id),
+    INDEX idx_owner_updated_conv (owner_id, updated_at, conversation_id),
     INDEX idx_conv_type (conversation_type)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 

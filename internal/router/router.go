@@ -64,6 +64,8 @@ func SetupRouter(h *server.Hertz, handlers *Handlers, wsServer *gateway.WsServer
 	{
 		convGroup.GET("/list", handlers.Conversation.GetConversationList)
 		convGroup.POST("/list", handlers.Conversation.GetConversationList)
+		convGroup.GET("/all", handlers.Conversation.GetAllConversationList)
+		convGroup.POST("/all", handlers.Conversation.GetAllConversationList)
 		convGroup.GET("/info", handlers.Conversation.GetConversation)
 		convGroup.PUT("/update", handlers.Conversation.UpdateConversation)
 		convGroup.POST("/mark_read", handlers.Conversation.MarkRead)
@@ -106,6 +108,8 @@ func SetupRouter(h *server.Hertz, handlers *Handlers, wsServer *gateway.WsServer
 	{
 		internalConvGroup.GET("/list", handlers.Conversation.GetConversationList)
 		internalConvGroup.POST("/list", handlers.Conversation.GetConversationList)
+		internalConvGroup.GET("/all", handlers.Conversation.GetAllConversationList)
+		internalConvGroup.POST("/all", handlers.Conversation.GetAllConversationList)
 	}
 }
 

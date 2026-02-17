@@ -186,7 +186,23 @@ type UpdateConversationRequest struct {
 
 // GetConversationListRequest represents conversation list request
 type GetConversationListRequest struct {
-	WithLastMessage *bool `json:"with_last_message,omitempty"`
+	WithLastMessage      *bool   `json:"with_last_message,omitempty"`
+	Limit                *int    `json:"limit,omitempty"`
+	CursorUpdatedAt      *int64  `json:"cursor_updated_at,omitempty"`
+	CursorConversationId *string `json:"cursor_conversation_id,omitempty"`
+}
+
+// ConversationListCursor represents cursor for conversation list pagination.
+type ConversationListCursor struct {
+	UpdatedAt      int64  `json:"updated_at"`
+	ConversationId string `json:"conversation_id"`
+}
+
+// ConversationListPage represents paginated conversation list response.
+type ConversationListPage struct {
+	List       []*ConversationInfo     `json:"list"`
+	HasMore    bool                    `json:"has_more"`
+	NextCursor *ConversationListCursor `json:"next_cursor,omitempty"`
 }
 
 // MarkReadRequest represents mark read request

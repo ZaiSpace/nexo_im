@@ -17,7 +17,7 @@ func ensureLocalServerReachable(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	_, err := integrationClient.GetConversationList(ctx)
+	_, err := integrationClient.GetAllConversationList(ctx)
 	if err == nil {
 		return
 	}
@@ -223,11 +223,11 @@ func TestMessageAndConversationMethods_Integration(t *testing.T) {
 		t.Fatalf("GetConversation conversation_id = %s, want %s", conv.ConversationId, msg.ConversationId)
 	}
 
-	conversations, err := users.clientA.GetConversationList(ctx)
+	conversations, err := users.clientA.GetAllConversationList(ctx)
 	if err != nil {
-		t.Fatalf("GetConversationList failed: %v", err)
+		t.Fatalf("GetAllConversationList failed: %v", err)
 	}
 	if len(conversations) == 0 {
-		t.Fatal("GetConversationList returned empty list")
+		t.Fatal("GetAllConversationList returned empty list")
 	}
 }

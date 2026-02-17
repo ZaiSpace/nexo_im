@@ -17,6 +17,24 @@ type ConversationService struct {
 	repos    *repository.Repositories
 }
 
+const (
+	DefaultConversationListLimit = 20
+	MaxConversationListLimit     = 100
+)
+
+// ConversationListCursor is the cursor for conversation list pagination.
+type ConversationListCursor struct {
+	UpdatedAt      int64  `json:"updated_at"`
+	ConversationId string `json:"conversation_id"`
+}
+
+// ConversationListResult is the paginated conversation list result.
+type ConversationListResult struct {
+	List       []*entity.ConversationInfo `json:"list"`
+	HasMore    bool                       `json:"has_more"`
+	NextCursor *ConversationListCursor    `json:"next_cursor,omitempty"`
+}
+
 // NewConversationService creates a new ConversationService
 func NewConversationService(repos *repository.Repositories) *ConversationService {
 	return &ConversationService{
@@ -27,15 +45,59 @@ func NewConversationService(repos *repository.Repositories) *ConversationService
 	}
 }
 
-// GetUserConversations gets all conversations for a user.
+// GetAllUserConversations gets all conversations for a user.
 // withLastMessage controls whether to include the latest message for each conversation.
-func (s *ConversationService) GetUserConversations(ctx context.Context, userId string, withLastMessage bool) ([]*entity.ConversationInfo, error) {
+func (s *ConversationService) GetAllUserConversations(ctx context.Context, userId string, withLastMessage bool) ([]*entity.ConversationInfo, error) {
 	convWithSeqs, err := s.convRepo.GetUserConversationsWithSeq(ctx, userId)
 	if err != nil {
 		log.CtxError(ctx, "get user conversations failed: user_id=%s, error=%v", userId, err)
 		return nil, errcode.ErrInternalServer
 	}
+	return s.buildConversationInfos(ctx, userId, convWithSeqs, withLastMessage)
+}
 
+// GetUserConversationsPage gets conversations for a user with cursor pagination.
+func (s *ConversationService) GetUserConversationsPage(ctx context.Context, userId string, withLastMessage bool, limit int, cursorUpdatedAt int64, cursorConversationId string) (*ConversationListResult, error) {
+	if limit <= 0 {
+		limit = DefaultConversationListLimit
+	}
+	if limit > MaxConversationListLimit {
+		limit = MaxConversationListLimit
+	}
+
+	convWithSeqs, err := s.convRepo.GetUserConversationsWithSeqPage(ctx, userId, limit+1, cursorUpdatedAt, cursorConversationId)
+	if err != nil {
+		log.CtxError(ctx, "get user conversations failed: user_id=%s, error=%v", userId, err)
+		return nil, errcode.ErrInternalServer
+	}
+
+	hasMore := len(convWithSeqs) > limit
+	if hasMore {
+		convWithSeqs = convWithSeqs[:limit]
+	}
+
+	list, err := s.buildConversationInfos(ctx, userId, convWithSeqs, withLastMessage)
+	if err != nil {
+		return nil, err
+	}
+
+	var nextCursor *ConversationListCursor
+	if hasMore && len(convWithSeqs) > 0 {
+		last := convWithSeqs[len(convWithSeqs)-1]
+		nextCursor = &ConversationListCursor{
+			UpdatedAt:      last.UpdatedAt,
+			ConversationId: last.ConversationId,
+		}
+	}
+
+	return &ConversationListResult{
+		List:       list,
+		HasMore:    hasMore,
+		NextCursor: nextCursor,
+	}, nil
+}
+
+func (s *ConversationService) buildConversationInfos(ctx context.Context, userId string, convWithSeqs []*entity.ConversationWithSeq, withLastMessage bool) ([]*entity.ConversationInfo, error) {
 	lastMsgMap := make(map[string]*entity.Message)
 	if withLastMessage {
 		convMaxSeq := make(map[string]int64, len(convWithSeqs))
@@ -45,6 +107,7 @@ func (s *ConversationService) GetUserConversations(ctx context.Context, userId s
 			}
 		}
 
+		var err error
 		lastMsgMap, err = s.msgRepo.BatchGetByConvSeq(ctx, convMaxSeq)
 		if err != nil {
 			log.CtxError(ctx, "batch get last messages failed: user_id=%s, error=%v", userId, err)
@@ -52,7 +115,7 @@ func (s *ConversationService) GetUserConversations(ctx context.Context, userId s
 		}
 	}
 
-	result := make([]*entity.ConversationInfo, 0, len(convWithSeqs))
+	list := make([]*entity.ConversationInfo, 0, len(convWithSeqs))
 	for _, conv := range convWithSeqs {
 		var lastMsg *entity.MessageInfo
 		if msg := lastMsgMap[conv.ConversationId]; msg != nil {
@@ -72,10 +135,10 @@ func (s *ConversationService) GetUserConversations(ctx context.Context, userId s
 			UpdatedAt:        conv.UpdatedAt,
 			LastMessage:      lastMsg,
 		}
-		result = append(result, info)
+		list = append(list, info)
 	}
 
-	return result, nil
+	return list, nil
 }
 
 // GetConversation gets a specific conversation for a user

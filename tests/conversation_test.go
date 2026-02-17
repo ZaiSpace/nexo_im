@@ -59,7 +59,7 @@ func TestConversation_List(t *testing.T) {
 	}
 
 	t.Run("get conversation list", func(t *testing.T) {
-		resp, err := client1.GET("/conversation/list")
+		resp, err := client1.GET("/conversation/all")
 		if err != nil {
 			t.Fatalf("get conversation list failed: %v", err)
 		}

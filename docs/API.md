@@ -761,7 +761,7 @@ GET /msg/max_seq?conversation_id=xxx
 
 ### 获取会话列表
 
-获取当前用户的所有会话。
+按游标分页获取会话列表。
 
 **请求**
 
@@ -776,79 +776,46 @@ POST /conversation/list
 
 | 字段 | 类型 | 必填 | 默认值 | 说明 |
 |------|------|------|--------|------|
-| with_last_message | bool | 否 | true | 是否返回每个会话的最新一条消息（`last_message`） |
+| with_last_message | bool | 否 | false | 是否返回每个会话的最新一条消息（`last_message`） |
+| limit | int | 否 | 20 | 每页条数，最大 100 |
+| cursor_updated_at | int64 | 否 | - | 游标时间戳（毫秒） |
+| cursor_conversation_id | string | 否 | - | 游标会话 ID（与 `cursor_updated_at` 配合使用） |
 
 **请求示例（POST）**
 
 ```json
 {
-  "with_last_message": true
+  "with_last_message": true,
+  "limit": 20
 }
 ```
 
-**响应示例**
-
-```json
-{
-  "code": 0,
-  "msg": "success",
-  "data": [
-    {
-      "conversation_id": "si_user001:user002",
-      "conversation_type": 1,
-      "peer_user_id": "user002",
-      "group_id": "",
-      "recv_msg_opt": 0,
-      "is_pinned": false,
-      "unread_count": 5,
-      "max_seq": 100,
-      "read_seq": 95,
-      "updated_at": 1706688000000,
-      "last_message": {
-        "id": 12345,
-        "conversation_id": "si_user001:user002",
-        "seq": 100,
-        "client_msg_id": "msg_uuid_100",
-        "sender_id": "user001",
-        "session_type": 1,
-        "msg_type": 1,
-        "content": {
-          "text": "最后一条消息"
-        },
-        "send_at": 1706688000000
-      }
-    },
-    {
-      "conversation_id": "sg_1234567890",
-      "conversation_type": 2,
-      "peer_user_id": "",
-      "group_id": "1234567890",
-      "recv_msg_opt": 0,
-      "is_pinned": true,
-      "unread_count": 10,
-      "max_seq": 200,
-      "read_seq": 190,
-      "updated_at": 1706688000000,
-      "last_message": {
-        "id": 22345,
-        "conversation_id": "sg_1234567890",
-        "seq": 200,
-        "client_msg_id": "msg_uuid_200",
-        "sender_id": "user009",
-        "session_type": 2,
-        "msg_type": 1,
-        "content": {
-          "text": "群里最后一条消息"
-        },
-        "send_at": 1706688000001
-      }
-    }
-  ]
-}
-```
+**响应结构**
+- `data.list`: 当前页会话数组
+- `data.has_more`: 是否还有下一页
+- `data.next_cursor`: 下一页游标（`updated_at`, `conversation_id`）
 
 **说明**
 - 当 `with_last_message=false` 时，响应中不会包含 `last_message` 字段。
+
+### 获取全部会话列表
+
+获取当前用户的所有会话。
+
+**请求**
+
+```
+GET /conversation/all
+POST /conversation/all
+```
+
+**请求参数（可选）**
+
+> `GET` 方式通过 Query 传参，`POST` 方式通过 JSON Body 传参。
+
+| 字段 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| with_last_message | bool | 否 | false | 是否返回每个会话的最新一条消息（`last_message`） |
 
 **会话类型说明**
 

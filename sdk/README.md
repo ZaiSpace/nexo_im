@@ -161,8 +161,12 @@ maxSeq, err := client.GetMaxSeq(ctx, "conversation_id")
 ### 会话 (Conversation)
 
 ```go
-// 获取会话列表
-conversations, err := client.GetConversationList(ctx)
+// 分页获取会话列表
+page, err := client.GetConversationList(ctx, 20, nil)
+// page.List / page.HasMore / page.NextCursor
+
+// 获取全部会话列表
+conversations, err := client.GetAllConversationList(ctx)
 
 // 获取指定会话
 conversation, err := client.GetConversation(ctx, "conversation_id")

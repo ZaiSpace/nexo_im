@@ -66,9 +66,16 @@ func (r *ConversationRepo) GetUserConversations(ctx context.Context, ownerId str
 
 // GetUserConversationsWithSeq gets conversations with sequence info
 func (r *ConversationRepo) GetUserConversationsWithSeq(ctx context.Context, ownerId string) ([]*entity.ConversationWithSeq, error) {
+	return r.GetUserConversationsWithSeqPage(ctx, ownerId, 0, 0, "")
+}
+
+// GetUserConversationsWithSeqPage gets conversations with sequence info using cursor pagination.
+// It sorts by updated_at DESC, conversation_id DESC for stable ordering.
+// When limit <= 0, no limit is applied.
+func (r *ConversationRepo) GetUserConversationsWithSeqPage(ctx context.Context, ownerId string, limit int, cursorUpdatedAt int64, cursorConversationId string) ([]*entity.ConversationWithSeq, error) {
 	var results []*entity.ConversationWithSeq
 
-	err := r.db.WithContext(ctx).
+	query := r.db.WithContext(ctx).
 		Table("conversations c").
 		Select(`
 			c.*,
@@ -78,9 +85,23 @@ func (r *ConversationRepo) GetUserConversationsWithSeq(ctx context.Context, owne
 		`).
 		Joins("LEFT JOIN seq_conversations sc ON sc.conversation_id = c.conversation_id").
 		Joins("LEFT JOIN seq_users su ON su.user_id = c.owner_id AND su.conversation_id = c.conversation_id").
-		Where("c.owner_id = ?", ownerId).
-		Order("c.updated_at DESC").
-		Scan(&results).Error
+		Where("c.owner_id = ?", ownerId)
+
+	if cursorUpdatedAt > 0 {
+		query = query.Where(
+			"(c.updated_at < ?) OR (c.updated_at = ? AND c.conversation_id < ?)",
+			cursorUpdatedAt,
+			cursorUpdatedAt,
+			cursorConversationId,
+		)
+	}
+
+	query = query.Order("c.updated_at DESC").Order("c.conversation_id DESC")
+	if limit > 0 {
+		query = query.Limit(limit)
+	}
+
+	err := query.Scan(&results).Error
 
 	if err != nil {
 		return nil, err

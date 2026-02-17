@@ -12,9 +12,17 @@ import (
 	"github.com/ZaiSpace/nexo_im/pkg/response"
 )
 
-// GetConversationListRequest represents conversation list request options.
-type GetConversationListRequest struct {
+// GetAllConversationListRequest represents conversation list request options.
+type GetAllConversationListRequest struct {
 	WithLastMessage *bool `json:"with_last_message" query:"with_last_message"`
+}
+
+// GetConversationListRequest represents conversation list page request options.
+type GetConversationListRequest struct {
+	WithLastMessage      *bool  `json:"with_last_message" query:"with_last_message"`
+	Limit                int    `json:"limit" query:"limit"`
+	CursorUpdatedAt      int64  `json:"cursor_updated_at" query:"cursor_updated_at"`
+	CursorConversationId string `json:"cursor_conversation_id" query:"cursor_conversation_id"`
 }
 
 // ConversationHandler handles conversation-related requests
@@ -27,7 +35,35 @@ func NewConversationHandler(convService *service.ConversationService) *Conversat
 	return &ConversationHandler{convService: convService}
 }
 
-// GetConversationList handles get conversation list request
+// GetAllConversationList handles get conversation list request
+func (h *ConversationHandler) GetAllConversationList(ctx context.Context, c *app.RequestContext) {
+	userId := middleware.GetUserId(c)
+	if userId == "" {
+		response.ErrorWithCode(ctx, c, errcode.ErrUnauthorized)
+		return
+	}
+
+	// By default do not include latest message to reduce payload.
+	withLastMessage := false
+	var req GetAllConversationListRequest
+	if err := c.BindAndValidate(&req); err != nil {
+		response.ErrorWithCode(ctx, c, errcode.ErrInvalidParam)
+		return
+	}
+	if req.WithLastMessage != nil {
+		withLastMessage = *req.WithLastMessage
+	}
+
+	convs, err := h.convService.GetAllUserConversations(ctx, userId, withLastMessage)
+	if err != nil {
+		response.Error(ctx, c, err)
+		return
+	}
+
+	response.Success(ctx, c, convs)
+}
+
+// GetConversationList handles paginated conversation list request.
 func (h *ConversationHandler) GetConversationList(ctx context.Context, c *app.RequestContext) {
 	userId := middleware.GetUserId(c)
 	if userId == "" {
@@ -35,8 +71,7 @@ func (h *ConversationHandler) GetConversationList(ctx context.Context, c *app.Re
 		return
 	}
 
-	// Default includes latest message for backward compatibility.
-	withLastMessage := true
+	withLastMessage := false
 	var req GetConversationListRequest
 	if err := c.BindAndValidate(&req); err != nil {
 		response.ErrorWithCode(ctx, c, errcode.ErrInvalidParam)
@@ -46,7 +81,27 @@ func (h *ConversationHandler) GetConversationList(ctx context.Context, c *app.Re
 		withLastMessage = *req.WithLastMessage
 	}
 
-	convs, err := h.convService.GetUserConversations(ctx, userId, withLastMessage)
+	if req.Limit < 0 || req.Limit > service.MaxConversationListLimit {
+		response.ErrorWithCode(ctx, c, errcode.ErrInvalidParam)
+		return
+	}
+	if req.CursorUpdatedAt > 0 && req.CursorConversationId == "" {
+		response.ErrorWithCode(ctx, c, errcode.ErrInvalidParam)
+		return
+	}
+	if req.CursorConversationId != "" && req.CursorUpdatedAt <= 0 {
+		response.ErrorWithCode(ctx, c, errcode.ErrInvalidParam)
+		return
+	}
+
+	convs, err := h.convService.GetUserConversationsPage(
+		ctx,
+		userId,
+		withLastMessage,
+		req.Limit,
+		req.CursorUpdatedAt,
+		req.CursorConversationId,
+	)
 	if err != nil {
 		response.Error(ctx, c, err)
 		return

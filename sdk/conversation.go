@@ -5,38 +5,91 @@ import (
 	"strconv"
 )
 
-// GetConversationList gets all conversations for the current user
-func (c *Client) GetConversationList(ctx context.Context) ([]*ConversationInfo, error) {
-	return c.GetConversationListWithLastMessage(ctx, false)
+// GetAllConversationList gets all conversations for the current user.
+func (c *Client) GetAllConversationList(ctx context.Context) ([]*ConversationInfo, error) {
+	return c.GetAllConversationListWithLastMessage(ctx, false)
 }
 
-// GetConversationListWithLastMessage gets conversations and controls whether latest message is included.
-func (c *Client) GetConversationListWithLastMessage(ctx context.Context, withLastMessage bool) ([]*ConversationInfo, error) {
+// GetAllConversationListWithLastMessage gets all conversations and controls whether latest message is included.
+func (c *Client) GetAllConversationListWithLastMessage(ctx context.Context, withLastMessage bool) ([]*ConversationInfo, error) {
 	req := &GetConversationListRequest{
 		WithLastMessage: &withLastMessage,
 	}
 	var result []*ConversationInfo
-	if err := c.post(ctx, "/conversation/list", req, &result); err != nil {
+	if err := c.post(ctx, "/conversation/all", req, &result); err != nil {
 		return nil, err
 	}
 	return result, nil
 }
 
-// InternalGetConversationList gets all conversations for the acting user via internal route.
-func (c *Client) InternalGetConversationList(ctx context.Context, opts ...RequestOption) ([]*ConversationInfo, error) {
-	return c.InternalGetConversationListWithLastMessage(ctx, false, opts...)
+// GetConversationList gets conversations with cursor pagination.
+func (c *Client) GetConversationList(ctx context.Context, limit int, cursor *ConversationListCursor) (*ConversationListPage, error) {
+	return c.GetConversationListWithLastMessage(ctx, false, limit, cursor)
 }
 
-// InternalGetConversationListWithLastMessage gets conversations via internal route and controls latest message inclusion.
-func (c *Client) InternalGetConversationListWithLastMessage(ctx context.Context, withLastMessage bool, opts ...RequestOption) ([]*ConversationInfo, error) {
+// GetConversationListWithLastMessage gets conversations with cursor pagination and controls latest message inclusion.
+func (c *Client) GetConversationListWithLastMessage(ctx context.Context, withLastMessage bool, limit int, cursor *ConversationListCursor) (*ConversationListPage, error) {
+	return c.getConversationListPage(ctx, "/conversation/list", withLastMessage, limit, cursor)
+}
+
+// InternalGetAllConversationList gets all conversations for the acting user via internal route.
+func (c *Client) InternalGetAllConversationList(ctx context.Context, opts ...RequestOption) ([]*ConversationInfo, error) {
+	return c.InternalGetAllConversationListWithLastMessage(ctx, false, opts...)
+}
+
+// InternalGetAllConversationListWithLastMessage gets all conversations via internal route and controls latest message inclusion.
+func (c *Client) InternalGetAllConversationListWithLastMessage(ctx context.Context, withLastMessage bool, opts ...RequestOption) ([]*ConversationInfo, error) {
 	req := &GetConversationListRequest{
 		WithLastMessage: &withLastMessage,
 	}
 	var result []*ConversationInfo
+	if err := c.post(ctx, "/internal/conversation/all", req, &result, opts...); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+// InternalGetConversationList gets conversations via internal route with cursor pagination.
+func (c *Client) InternalGetConversationList(ctx context.Context, limit int, cursor *ConversationListCursor, opts ...RequestOption) (*ConversationListPage, error) {
+	return c.InternalGetConversationListWithLastMessage(ctx, false, limit, cursor, opts...)
+}
+
+// InternalGetConversationListWithLastMessage gets conversations via internal route with cursor pagination.
+func (c *Client) InternalGetConversationListWithLastMessage(ctx context.Context, withLastMessage bool, limit int, cursor *ConversationListCursor, opts ...RequestOption) (*ConversationListPage, error) {
+	req := &GetConversationListRequest{
+		WithLastMessage: &withLastMessage,
+	}
+	if limit > 0 {
+		req.Limit = &limit
+	}
+	if cursor != nil {
+		req.CursorUpdatedAt = &cursor.UpdatedAt
+		req.CursorConversationId = &cursor.ConversationId
+	}
+	var result ConversationListPage
 	if err := c.post(ctx, "/internal/conversation/list", req, &result, opts...); err != nil {
 		return nil, err
 	}
-	return result, nil
+	return &result, nil
+}
+
+func (c *Client) getConversationListPage(ctx context.Context, path string, withLastMessage bool, limit int, cursor *ConversationListCursor) (*ConversationListPage, error) {
+	req := &GetConversationListRequest{
+		WithLastMessage: &withLastMessage,
+	}
+	if limit > 0 {
+		req.Limit = &limit
+	}
+	if cursor != nil {
+		req.CursorUpdatedAt = &cursor.UpdatedAt
+		req.CursorConversationId = &cursor.ConversationId
+	}
+
+	var result ConversationListPage
+	if err := c.post(ctx, path, req, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
 }
 
 // GetConversation gets a specific conversation

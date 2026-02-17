@@ -185,13 +185,19 @@ GET {{baseUrl}}/conversation/list
 Content-Type: {{contentType}}
 Authorization: Bearer {{token}}
 
-### Conversation get conversation list (with latest message option)
-POST {{baseUrl}}/conversation/list
+### Conversation get conversation list (cursor pagination)
+GET {{baseUrl}}/conversation/list?limit=20
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+### Conversation get all conversation list (with latest message option)
+POST {{baseUrl}}/conversation/all
 Content-Type: {{contentType}}
 Authorization: Bearer {{token}}
 
 {
-  "with_last_message": true
+  "with_last_message": true,
+  "limit": 20
 }
 
 ### Conversation get conversation info
