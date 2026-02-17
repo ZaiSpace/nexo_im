@@ -100,6 +100,13 @@ func SetupRouter(h *server.Hertz, handlers *Handlers, wsServer *gateway.WsServer
 	{
 		internalMsgGroup.POST("/send", handlers.Message.SendMessage)
 	}
+
+	// Internal conversation routes (service-to-service auth + acting user required)
+	internalConvGroup := h.Group("/internal/conversation", middleware.InternalAuthAsUser())
+	{
+		internalConvGroup.GET("/list", handlers.Conversation.GetConversationList)
+		internalConvGroup.POST("/list", handlers.Conversation.GetConversationList)
+	}
 }
 
 // Handlers holds all HTTP handlers

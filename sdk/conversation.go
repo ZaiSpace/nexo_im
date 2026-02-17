@@ -7,7 +7,7 @@ import (
 
 // GetConversationList gets all conversations for the current user
 func (c *Client) GetConversationList(ctx context.Context) ([]*ConversationInfo, error) {
-	return c.GetConversationListWithLastMessage(ctx, true)
+	return c.GetConversationListWithLastMessage(ctx, false)
 }
 
 // GetConversationListWithLastMessage gets conversations and controls whether latest message is included.
@@ -17,6 +17,23 @@ func (c *Client) GetConversationListWithLastMessage(ctx context.Context, withLas
 	}
 	var result []*ConversationInfo
 	if err := c.post(ctx, "/conversation/list", req, &result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+// InternalGetConversationList gets all conversations for the acting user via internal route.
+func (c *Client) InternalGetConversationList(ctx context.Context, opts ...RequestOption) ([]*ConversationInfo, error) {
+	return c.InternalGetConversationListWithLastMessage(ctx, false, opts...)
+}
+
+// InternalGetConversationListWithLastMessage gets conversations via internal route and controls latest message inclusion.
+func (c *Client) InternalGetConversationListWithLastMessage(ctx context.Context, withLastMessage bool, opts ...RequestOption) ([]*ConversationInfo, error) {
+	req := &GetConversationListRequest{
+		WithLastMessage: &withLastMessage,
+	}
+	var result []*ConversationInfo
+	if err := c.post(ctx, "/internal/conversation/list", req, &result, opts...); err != nil {
 		return nil, err
 	}
 	return result, nil

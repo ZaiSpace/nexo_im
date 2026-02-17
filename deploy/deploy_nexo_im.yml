@@ -13,86 +13,126 @@
         - "{{ app_root }}"
         - "{{ shared_root }}"
         - "{{ log_root }}"
+        - "{{ shared_root }}/rollback"
+        - "{{ shared_root }}/rollback/{{ app_name }}"
 
-    - name: Sync repository to target host
-      ansible.posix.synchronize:
-        src: "{{ ((playbook_dir + '/..') | realpath) + '/' }}"
-        dest: "{{ app_root }}/"
-        delete: true
-        recursive: true
-        rsync_opts:
-          - "--exclude=.git"
-          - "--exclude=.idea"
-          - "--exclude=.vscode"
-          - "--exclude=deploy/inventory/*.ini"
-
-    - name: Verify go.mod exists on remote
+    - name: Check current nexo_im binary for rollback
       ansible.builtin.stat:
-        path: "{{ app_root }}/go.mod"
-      register: go_mod_stat
+        path: "{{ app_root }}/bin/nexo_im"
+      register: nexo_im_current_bin
 
-    - name: Fail when go.mod is missing
-      ansible.builtin.fail:
-        msg: "Missing {{ app_root }}/go.mod after sync. Check synchronize src path and inventory target."
-      when: not go_mod_stat.stat.exists
-
-    - name: Configure git to use SSH for GitHub on remote
-      ansible.builtin.command: git config --global url.git@github.com:.insteadOf https://github.com/
+    - name: Backup current nexo_im binary
+      ansible.builtin.command: >
+        cp -a
+        "{{ app_root }}/bin/nexo_im"
+        "{{ shared_root }}/rollback/{{ app_name }}/nexo_im.bak"
+      when: nexo_im_current_bin.stat.exists
       changed_when: true
 
-    - name: Configure Go private module settings on remote
-      ansible.builtin.command: go env -w {{ item }}
-      environment:
-        PATH: "/usr/local/go/bin:{{ ansible_env.PATH | default('/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin') }}"
-      loop:
-        - "GOPRIVATE={{ go_private }}"
-        - "GONOSUMDB={{ go_private }}"
-        - "GONOPROXY={{ go_private }}"
-      changed_when: true
+    - name: Deploy and restart nexo_im
+      block:
+        - name: Sync repository to target host
+          ansible.posix.synchronize:
+            src: "{{ ((playbook_dir + '/..') | realpath) + '/' }}"
+            dest: "{{ app_root }}/"
+            delete: true
+            recursive: true
+            rsync_opts:
+              - "--exclude=.git"
+              - "--exclude=.idea"
+              - "--exclude=.vscode"
+              - "--exclude=deploy/inventory/*.ini"
 
-    - name: Ensure bin directory exists
-      ansible.builtin.file:
-        path: "{{ app_root }}/bin"
-        state: directory
-        mode: "0755"
+        - name: Verify go.mod exists on remote
+          ansible.builtin.stat:
+            path: "{{ app_root }}/go.mod"
+          register: go_mod_stat
 
-    - name: Download Go modules on remote host
-      ansible.builtin.command: /usr/local/go/bin/go mod download
-      args:
-        chdir: "{{ app_root }}"
-      environment:
-        GOFLAGS: "-mod=mod"
-        GOPRIVATE: "{{ go_private }}"
-        GONOSUMDB: "{{ go_private }}"
-        GONOPROXY: "{{ go_private }}"
-        PATH: "/usr/local/go/bin:{{ ansible_env.PATH | default('/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin') }}"
+        - name: Fail when go.mod is missing
+          ansible.builtin.fail:
+            msg: "Missing {{ app_root }}/go.mod after sync. Check synchronize src path and inventory target."
+          when: not go_mod_stat.stat.exists
 
-    - name: Build nexo_im binary on remote host
-      ansible.builtin.command: /usr/local/go/bin/go build -o bin/nexo_im ./cmd/server
-      args:
-        chdir: "{{ app_root }}"
-      environment:
-        GOFLAGS: "-mod=mod"
-        CGO_ENABLED: "0"
-        GOPRIVATE: "{{ go_private }}"
-        GONOSUMDB: "{{ go_private }}"
-        GONOPROXY: "{{ go_private }}"
-        PATH: "/usr/local/go/bin:{{ ansible_env.PATH | default('/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin') }}"
+        - name: Configure git to use SSH for GitHub on remote
+          ansible.builtin.command: git config --global url.git@github.com:.insteadOf https://github.com/
+          changed_when: true
 
-    - name: Render supervisor config
-      ansible.builtin.template:
-        src: templates/nexo_im.supervisor.conf.j2
-        dest: "{{ supervisor_conf_path }}"
-        mode: "0644"
+        - name: Configure Go private module settings on remote
+          ansible.builtin.command: go env -w {{ item }}
+          environment:
+            PATH: "/usr/local/go/bin:{{ ansible_env.PATH | default('/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin') }}"
+          loop:
+            - "GOPRIVATE={{ go_private }}"
+            - "GONOSUMDB={{ go_private }}"
+            - "GONOPROXY={{ go_private }}"
+          changed_when: true
 
-    - name: Reread supervisor configs
-      ansible.builtin.command: supervisorctl reread
-      changed_when: true
+        - name: Ensure bin directory exists
+          ansible.builtin.file:
+            path: "{{ app_root }}/bin"
+            state: directory
+            mode: "0755"
 
-    - name: Update supervisor program list
-      ansible.builtin.command: supervisorctl update
-      changed_when: true
+        - name: Download Go modules on remote host
+          ansible.builtin.command: /usr/local/go/bin/go mod download
+          args:
+            chdir: "{{ app_root }}"
+          environment:
+            GOFLAGS: "-mod=mod"
+            GOPRIVATE: "{{ go_private }}"
+            GONOSUMDB: "{{ go_private }}"
+            GONOPROXY: "{{ go_private }}"
+            PATH: "/usr/local/go/bin:{{ ansible_env.PATH | default('/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin') }}"
 
-    - name: Restart nexo_im
-      ansible.builtin.command: supervisorctl restart "{{ app_name }}"
-      changed_when: true
+        - name: Build nexo_im binary on remote host
+          ansible.builtin.command: /usr/local/go/bin/go build -o bin/nexo_im ./cmd/server
+          args:
+            chdir: "{{ app_root }}"
+          environment:
+            GOFLAGS: "-mod=mod"
+            CGO_ENABLED: "0"
+            GOPRIVATE: "{{ go_private }}"
+            GONOSUMDB: "{{ go_private }}"
+            GONOPROXY: "{{ go_private }}"
+            PATH: "/usr/local/go/bin:{{ ansible_env.PATH | default('/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin') }}"
+
+        - name: Render supervisor config
+          ansible.builtin.template:
+            src: templates/nexo_im.supervisor.conf.j2
+            dest: "{{ supervisor_conf_path }}"
+            mode: "0644"
+
+        - name: Reread supervisor configs
+          ansible.builtin.command: supervisorctl reread
+          changed_when: true
+
+        - name: Update supervisor program list
+          ansible.builtin.command: supervisorctl update
+          changed_when: true
+
+        - name: Restart nexo_im
+          ansible.builtin.command: supervisorctl restart "{{ app_name }}"
+          changed_when: true
+      rescue:
+        - name: Ensure bin directory exists for rollback
+          ansible.builtin.file:
+            path: "{{ app_root }}/bin"
+            state: directory
+            mode: "0755"
+
+        - name: Restore previous nexo_im binary
+          ansible.builtin.command: >
+            cp -a
+            "{{ shared_root }}/rollback/{{ app_name }}/nexo_im.bak"
+            "{{ app_root }}/bin/nexo_im"
+          when: nexo_im_current_bin.stat.exists
+          changed_when: true
+
+        - name: Roll back nexo_im process to previous binary
+          ansible.builtin.command: supervisorctl restart "{{ app_name }}"
+          when: nexo_im_current_bin.stat.exists
+          changed_when: true
+
+        - name: Abort deploy after rollback
+          ansible.builtin.fail:
+            msg: "Deployment failed. Rolled back to previous binary and restarted {{ app_name }}."
