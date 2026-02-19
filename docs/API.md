@@ -36,7 +36,7 @@ Authorization: Bearer <token>
 ```json
 {
   "code": 0,
-  "msg": "success",
+  "message": "success",
   "data": {}
 }
 ```
@@ -44,7 +44,7 @@ Authorization: Bearer <token>
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | code | int | 状态码，0 表示成功 |
-| msg | string | 状态信息 |
+| message | string | 状态信息 |
 | data | object | 响应数据 |
 
 ---
@@ -86,9 +86,9 @@ POST /auth/register
 ```json
 {
   "code": 0,
-  "msg": "success",
+  "message": "success",
   "data": {
-    "user_id": "user001",
+    "id": "user001",
     "nickname": "张三",
     "avatar": "https://example.com/avatar.png",
     "extra": "",
@@ -142,11 +142,11 @@ POST /auth/login
 ```json
 {
   "code": 0,
-  "msg": "success",
+  "message": "success",
   "data": {
     "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
     "user_info": {
-      "user_id": "user001",
+      "id": "user001",
       "nickname": "张三",
       "avatar": "https://example.com/avatar.png",
       "extra": "",
@@ -180,9 +180,9 @@ GET /user/info
 ```json
 {
   "code": 0,
-  "msg": "success",
+  "message": "success",
   "data": {
-    "user_id": "user001",
+    "id": "user001",
     "nickname": "张三",
     "avatar": "https://example.com/avatar.png",
     "extra": "",
@@ -214,9 +214,9 @@ GET /user/profile/:user_id
 ```json
 {
   "code": 0,
-  "msg": "success",
+  "message": "success",
   "data": {
-    "user_id": "user002",
+    "id": "user002",
     "nickname": "李四",
     "avatar": "https://example.com/avatar2.png",
     "extra": "",
@@ -259,9 +259,9 @@ PUT /user/update
 ```json
 {
   "code": 0,
-  "msg": "success",
+  "message": "success",
   "data": {
-    "user_id": "user001",
+    "id": "user001",
     "nickname": "张三丰",
     "avatar": "https://example.com/new-avatar.png",
     "extra": "",
@@ -311,7 +311,7 @@ POST /group/create
 ```json
 {
   "code": 0,
-  "msg": "success",
+  "message": "success",
   "data": {
     "id": "1234567890",
     "name": "技术交流群",
@@ -358,7 +358,7 @@ POST /group/join
 ```json
 {
   "code": 0,
-  "msg": "success",
+  "message": "success",
   "data": null
 }
 ```
@@ -398,7 +398,7 @@ POST /group/quit
 ```json
 {
   "code": 0,
-  "msg": "success",
+  "message": "success",
   "data": null
 }
 ```
@@ -430,7 +430,7 @@ GET /group/info?group_id=xxx
 ```json
 {
   "code": 0,
-  "msg": "success",
+  "message": "success",
   "data": {
     "id": "1234567890",
     "name": "技术交流群",
@@ -474,7 +474,7 @@ GET /group/members?group_id=xxx
 ```json
 {
   "code": 0,
-  "msg": "success",
+  "message": "success",
   "data": [
     {
       "id": 1,
@@ -554,7 +554,7 @@ POST /msg/send
 | 5 | File | 文件消息 |
 | 100 | Custom | 自定义消息 |
 
-**消息内容格式**
+**消息内容格式（当前实现）**
 
 文本消息：
 ```json
@@ -566,46 +566,35 @@ POST /msg/send
 图片消息：
 ```json
 {
-  "image_url": "https://example.com/image.png",
-  "image_width": 800,
-  "image_height": 600,
-  "image_size": 102400
+  "image": "https://example.com/image.png"
 }
 ```
 
 视频消息：
 ```json
 {
-  "video_url": "https://example.com/video.mp4",
-  "video_duration": 120,
-  "video_size": 10240000,
-  "thumbnail_url": "https://example.com/thumb.png"
+  "video": "https://example.com/video.mp4"
 }
 ```
 
 音频消息：
 ```json
 {
-  "audio_url": "https://example.com/audio.mp3",
-  "audio_duration": 60,
-  "audio_size": 1024000
+  "audio": "https://example.com/audio.mp3"
 }
 ```
 
 文件消息：
 ```json
 {
-  "file_url": "https://example.com/file.pdf",
-  "file_name": "document.pdf",
-  "file_size": 2048000
+  "file": "https://example.com/file.pdf"
 }
 ```
 
 自定义消息：
 ```json
 {
-  "custom_type": "location",
-  "custom_data": "{\"lat\":39.9,\"lng\":116.4}"
+  "custom": "{\"type\":\"location\",\"lat\":39.9,\"lng\":116.4}"
 }
 ```
 
@@ -642,14 +631,13 @@ POST /msg/send
 ```json
 {
   "code": 0,
-  "msg": "success",
+  "message": "success",
   "data": {
+    "id": 1,
     "conversation_id": "si_user001:user002",
     "seq": 1,
     "client_msg_id": "msg_uuid_001",
     "sender_id": "user001",
-    "recv_id": "user002",
-    "group_id": "",
     "session_type": 1,
     "msg_type": 1,
     "content": {
@@ -697,19 +685,20 @@ GET /msg/pull?conversation_id=xxx&begin_seq=1&end_seq=100&limit=50
 ```json
 {
   "code": 0,
-  "msg": "success",
+  "message": "success",
   "data": {
     "messages": [
       {
+        "id": 1,
         "conversation_id": "si_user001:user002",
         "seq": 1,
         "client_msg_id": "msg_uuid_001",
         "sender_id": "user001",
-        "recv_id": "user002",
-        "group_id": "",
         "session_type": 1,
         "msg_type": 1,
-        "content_text": "你好！",
+        "content": {
+          "text": "你好！"
+        },
         "send_at": 1706688000000
       }
     ],
@@ -746,7 +735,7 @@ GET /msg/max_seq?conversation_id=xxx
 ```json
 {
   "code": 0,
-  "msg": "success",
+  "message": "success",
   "data": {
     "max_seq": 100
   }
@@ -855,7 +844,7 @@ GET /conversation/info?conversation_id=xxx
 ```json
 {
   "code": 0,
-  "msg": "success",
+  "message": "success",
   "data": {
     "conversation_id": "si_user001:user002",
     "conversation_type": 1,
@@ -910,7 +899,7 @@ PUT /conversation/update?conversation_id=xxx
 ```json
 {
   "code": 0,
-  "msg": "success",
+  "message": "success",
   "data": null
 }
 ```
@@ -948,7 +937,7 @@ POST /conversation/mark_read
 ```json
 {
   "code": 0,
-  "msg": "success",
+  "message": "success",
   "data": null
 }
 ```
@@ -976,7 +965,7 @@ GET /conversation/max_read_seq?conversation_id=xxx
 ```json
 {
   "code": 0,
-  "msg": "success",
+  "message": "success",
   "data": {
     "max_seq": 100,
     "read_seq": 95,
@@ -1009,7 +998,7 @@ GET /conversation/unread_count?conversation_id=xxx
 ```json
 {
   "code": 0,
-  "msg": "success",
+  "message": "success",
   "data": {
     "unread_count": 5
   }

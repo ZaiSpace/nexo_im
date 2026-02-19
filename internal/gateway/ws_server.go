@@ -183,6 +183,15 @@ func (s *WsServer) UnregisterClient(client *Client) {
 
 // HandleConnection handles a new WebSocket connection (Hertz handler)
 func (s *WsServer) HandleConnection(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	traceID := middleware.GetTraceID(ctx)
+	if traceID == "" {
+		traceID = strings.TrimSpace(r.Header.Get(middleware.TraceIDHeader))
+	}
+	if traceID == "" {
+		traceID = strings.TrimSpace(r.URL.Query().Get(QueryOperationId))
+	}
+	ctx = middleware.WithTraceID(ctx, traceID)
+
 	// Check connection limit
 	if s.onlineConnNum.Load() >= s.maxConnNum {
 		http.Error(w, "connection limit exceeded", http.StatusServiceUnavailable)
@@ -226,6 +235,7 @@ func (s *WsServer) HandleConnection(ctx context.Context, w http.ResponseWriter, 
 	connId := uuid.New().String()
 	wsConn := NewWebSocketClientConn(conn, s.cfg.WebSocket.MaxMessageSize, PongWait, PingPeriod)
 	client := NewClient(wsConn, claims.UserId, claims.PlatformId, sdkType, token, connId, s)
+	client.ctx = middleware.WithTraceID(client.ctx, traceID)
 
 	// Register client
 	s.registerChan <- client

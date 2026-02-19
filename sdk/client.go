@@ -43,6 +43,12 @@ type requestOptions struct {
 // RequestOption configures per-request behavior.
 type RequestOption func(*requestOptions)
 
+const (
+	traceIDContextKey = "trace_id"
+	traceIDHeader     = "Trace-Id"
+	xTraceIDHeader    = "X-Trace-Id"
+)
+
 // ClientOption is a function to configure the client
 type ClientOption func(*Client)
 
@@ -177,7 +183,12 @@ func buildRequestOptions(opts ...RequestOption) *requestOptions {
 	return ro
 }
 
-func (c *Client) applyAuthHeaders(req *protocol.Request, method, path string, body []byte, reqOpts *requestOptions) {
+func (c *Client) applyAuthHeaders(ctx context.Context, req *protocol.Request, method, path string, body []byte, reqOpts *requestOptions) {
+	if traceID := traceIDFromContext(ctx); traceID != "" {
+		req.Header.Set(traceIDHeader, traceID)
+		req.Header.Set(xTraceIDHeader, traceID)
+	}
+
 	if c.token != "" {
 		req.Header.Set("Authorization", "Bearer "+c.token)
 		req.Header.Set("X-Token", c.token)
@@ -218,7 +229,7 @@ func (c *Client) request(ctx context.Context, method, path string, body any, res
 		}
 		req.SetBody(jsonBody)
 	}
-	c.applyAuthHeaders(req, method, path, jsonBody, buildRequestOptions(opts...))
+	c.applyAuthHeaders(ctx, req, method, path, jsonBody, buildRequestOptions(opts...))
 
 	err := c.httpClient.Do(ctx, req, resp)
 	if err != nil {
@@ -266,7 +277,7 @@ func (c *Client) get(ctx context.Context, path string, params map[string]string,
 
 	req.SetMethod(consts.MethodGet)
 	req.SetRequestURI(reqURL)
-	c.applyAuthHeaders(req, consts.MethodGet, path, nil, buildRequestOptions(opts...))
+	c.applyAuthHeaders(ctx, req, consts.MethodGet, path, nil, buildRequestOptions(opts...))
 
 	err := c.httpClient.Do(ctx, req, resp)
 	if err != nil {
@@ -322,4 +333,36 @@ func signInternalRequest(secret, serviceName, timestamp, method, path string, bo
 	mac := hmac.New(sha256.New, []byte(secret))
 	mac.Write([]byte(payload))
 	return hex.EncodeToString(mac.Sum(nil))
+}
+
+func traceIDFromContext(ctx context.Context) string {
+	if ctx == nil {
+		return ""
+	}
+
+	for _, key := range [...]string{traceIDContextKey, traceIDHeader, xTraceIDHeader} {
+		val := contextValueToTraceID(ctx.Value(key))
+		if val != "" {
+			return val
+		}
+	}
+
+	return ""
+}
+
+func contextValueToTraceID(v any) string {
+	if v == nil {
+		return ""
+	}
+
+	switch val := v.(type) {
+	case string:
+		return strings.TrimSpace(val)
+	case []byte:
+		return strings.TrimSpace(string(val))
+	case interface{ String() string }:
+		return strings.TrimSpace(val.String())
+	default:
+		return ""
+	}
 }

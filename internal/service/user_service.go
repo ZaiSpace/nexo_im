@@ -28,6 +28,9 @@ func (s *UserService) GetUserInfo(ctx context.Context, userId string) (*entity.U
 		log.CtxDebug(ctx, "get user failed: user_id=%s, error=%v", userId, err)
 		return nil, errcode.ErrUserNotFound
 	}
+	if user == nil {
+		return nil, errcode.ErrUserNotFound
+	}
 	return user.ToUserInfo(), nil
 }
 

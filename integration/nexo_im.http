@@ -4,10 +4,10 @@
 @baseUrl = http://54.196.109.226:8080
 @wsBaseUrl = ws://54.196.109.226:8080
 @contentType = application/json
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxMjQyMTA2ODQ0OTM5NTIsImRldmljZV9pZCI6MCwiaXNzIjoid2VhdmVyX2FjY291bnQiLCJleHAiOjE3NzE2OTM3NzEsIm5iZiI6MTc3MTA4ODk3MH0.XYSTS601JbsXx0IIQCSOIC5Mi4xEqcsLsh1ypx65Y0A
-@otherToken = replace_with_other_user_login_token
-@userId = http_test_user_001
-@otherUserId = http_test_user_002
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxMjU0NjczNjA1Mzg2ODgsImRldmljZV9pZCI6MCwiaXNzIjoiaXNsYW5kX2FjY291bnQiLCJleHAiOjE3NzE5OTQ4NzksIm5iZiI6MTc3MTM5MDA3OH0.oci_uey4CfsG7tpSE3WM97n6vNunBqHm4GF9yAAlxJY
+@otherToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxMjUyMzcxODIwNjI2NTcsImRldmljZV9pZCI6MCwiaXNzIjoiaXNsYW5kX2FjY291bnQiLCJleHAiOjE3NzE5Mzk2MTYsIm5iZiI6MTc3MTMzNDgxNX0.XD-okdsaNw2T_zqhmcy1mdKj6XGY9d6fSLC562Np4RE
+@userId = u___125467360538688
+@otherUserId = u___125237182062657
 @password = 123456
 @platformId = 5
 @groupId = replace_with_group_id
@@ -184,6 +184,11 @@ Authorization: Bearer {{token}}
 GET {{baseUrl}}/conversation/list
 Content-Type: {{contentType}}
 Authorization: Bearer {{token}}
+
+### Conversation get conversation list
+GET {{baseUrl}}/conversation/list
+Content-Type: {{contentType}}
+Authorization: Bearer {{otherToken}}
 
 ### Conversation get conversation list (cursor pagination)
 GET {{baseUrl}}/conversation/list?limit=20

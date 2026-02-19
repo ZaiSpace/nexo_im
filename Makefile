@@ -4,7 +4,9 @@
 .PHONY: all build test test-unit test-integration test-e2e clean \
         docker-up docker-down docker-logs \
         server server-bg server-stop \
-        lint fmt vet help
+        lint fmt vet \
+        logs-test logs-prod logs \
+        help
 
 # Configuration
 APP_NAME := nexo
@@ -12,6 +14,11 @@ SERVER_BIN := ./bin/$(APP_NAME)
 SERVER_PID := /tmp/$(APP_NAME).pid
 CONFIG_FILE := config/config.yaml
 TEST_TIMEOUT := 120s
+DEPLOY_DIR := deploy
+INVENTORY ?=
+LIMIT ?= nexo
+EXTRA ?=
+LOG_DEST ?= ./logs
 
 # Colors for output
 GREEN := \033[0;32m
@@ -240,6 +247,23 @@ setup:
 	@echo "$(GREEN)Setup complete$(NC)"
 
 #==============================================================================
+# Deploy Logs
+#==============================================================================
+
+## logs-test: Download test environment logs
+logs-test:
+	$(MAKE) -C $(DEPLOY_DIR) logs-test EXTRA="$(EXTRA)"
+
+## logs-prod: Download production environment logs
+logs-prod:
+	$(MAKE) -C $(DEPLOY_DIR) logs-prod EXTRA="$(EXTRA)"
+
+## logs: Download logs with custom inventory (usage: make logs INVENTORY=deploy/inventory/test.ini LOG_DEST=./logs/test)
+logs:
+	@test -n "$(INVENTORY)" || (echo "$(RED)INVENTORY is required, e.g. make logs INVENTORY=deploy/inventory/test.ini$(NC)"; exit 1)
+	$(MAKE) -C $(DEPLOY_DIR) logs INVENTORY="$(INVENTORY)" LIMIT="$(LIMIT)" LOG_DEST="$(LOG_DEST)" EXTRA="$(EXTRA)"
+
+#==============================================================================
 # Help
 #==============================================================================
 
@@ -257,3 +281,4 @@ help:
 	@echo "  make test-specific TEST=TestAuth  # Run specific test"
 	@echo "  make docker-up         # Start MySQL and Redis"
 	@echo "  make server-bg         # Start server in background"
+	@echo "  make logs-test         # Download TEST logs to deploy/logs/test"

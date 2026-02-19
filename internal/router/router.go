@@ -16,8 +16,10 @@ import (
 
 // SetupRouter sets up all routes
 func SetupRouter(h *server.Hertz, handlers *Handlers, wsServer *gateway.WsServer) {
-	// CORS middleware
+	// Global middlewares
 	h.Use(middleware.CORS())
+	h.Use(middleware.TraceID())
+	h.Use(middleware.Logger())
 
 	// Health check
 	h.GET("/health", func(ctx context.Context, c *app.RequestContext) {

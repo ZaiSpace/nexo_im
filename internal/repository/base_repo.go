@@ -4,6 +4,8 @@ import (
 	"context"
 	"crypto/tls"
 	"database/sql"
+	stdlog "log"
+	"os"
 	"time"
 
 	"github.com/mbeoliero/kit/log"
@@ -61,8 +63,18 @@ func initMySQL(cfg *config.Config) (*gorm.DB, error) {
 		logLevel = logger.Warn
 	}
 
+	gormLogger := logger.New(
+		stdlog.New(os.Stdout, "", stdlog.LstdFlags),
+		logger.Config{
+			SlowThreshold:             time.Second,
+			LogLevel:                  logLevel,
+			IgnoreRecordNotFoundError: true,
+			Colorful:                  false,
+		},
+	)
+
 	db, err := gorm.Open(mysql.Open(cfg.MySQL.DSN()), &gorm.Config{
-		Logger: logger.Default.LogMode(logLevel),
+		Logger: gormLogger,
 	})
 	if err != nil {
 		return nil, err

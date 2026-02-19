@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 
 	"github.com/ZaiSpace/nexo_im/internal/entity"
 	"github.com/redis/go-redis/v9"
@@ -29,6 +30,9 @@ func (r *UserRepo) GetById(ctx context.Context, id string) (*entity.User, error)
 	var user entity.User
 	err := r.db.WithContext(ctx).Where("id = ?", id).First(&user).Error
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
 		return nil, err
 	}
 	return &user, nil

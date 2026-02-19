@@ -227,6 +227,36 @@ func TestConversation_MarkRead(t *testing.T) {
 			t.Errorf("expected unread_count=0, got %d", result["unread_count"])
 		}
 	})
+
+	t.Run("mark read with oversized seq should clamp to max", func(t *testing.T) {
+		req := MarkReadRequest{
+			ConversationId: conversationId,
+			ReadSeq:        9223372036854775807,
+		}
+
+		resp, err := client2.POST("/conversation/mark_read", req)
+		if err != nil {
+			t.Fatalf("mark read failed: %v", err)
+		}
+		AssertSuccess(t, resp, "mark read should succeed")
+
+		resp, err = client2.GET(fmt.Sprintf("/conversation/max_read_seq?conversation_id=%s", conversationId))
+		if err != nil {
+			t.Fatalf("get max read seq failed: %v", err)
+		}
+		AssertSuccess(t, resp, "get max read seq should succeed")
+
+		var result map[string]int64
+		if err := resp.ParseData(&result); err != nil {
+			t.Fatalf("parse result failed: %v", err)
+		}
+		if result["max_seq"] != 5 {
+			t.Errorf("expected max_seq=5, got %d", result["max_seq"])
+		}
+		if result["read_seq"] != 5 {
+			t.Errorf("expected read_seq=5 after clamp, got %d", result["read_seq"])
+		}
+	})
 }
 
 func TestConversation_GetMaxReadSeq(t *testing.T) {

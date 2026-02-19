@@ -102,6 +102,9 @@ func (s *AuthService) Login(ctx context.Context, req *LoginRequest) (*LoginRespo
 		log.CtxDebug(ctx, "user not found: user_id=%s, error=%v", req.UserId, err)
 		return nil, errcode.ErrUserNotFound
 	}
+	if user == nil {
+		return nil, errcode.ErrUserNotFound
+	}
 
 	// Verify password with bcrypt
 	if err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {

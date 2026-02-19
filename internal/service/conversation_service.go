@@ -214,6 +214,34 @@ func (s *ConversationService) UpdateConversation(ctx context.Context, userId, co
 
 // MarkRead marks a conversation as read up to a seq
 func (s *ConversationService) MarkRead(ctx context.Context, userId, conversationId string, readSeq int64) error {
+	if readSeq < 0 {
+		return errcode.ErrInvalidParam
+	}
+
+	conv, err := s.convRepo.GetByOwnerAndConvId(ctx, userId, conversationId)
+	if err != nil {
+		log.CtxError(ctx, "get conversation failed: user_id=%s, conversation_id=%s, error=%v", userId, conversationId, err)
+		return errcode.ErrInternalServer
+	}
+	if conv == nil {
+		return errcode.ErrConvNotFound
+	}
+
+	seqConv, err := s.seqRepo.GetConversationSeqInfo(ctx, conversationId)
+	if err != nil {
+		log.CtxError(ctx, "get conversation seq failed: conversation_id=%s, error=%v", conversationId, err)
+		return errcode.ErrInternalServer
+	}
+
+	// Clamp client-provided read_seq to the visible max seq to avoid persisting invalid sentinel values.
+	maxReadableSeq := seqConv.MaxSeq
+	if maxReadableSeq < 0 {
+		maxReadableSeq = 0
+	}
+	if readSeq > maxReadableSeq {
+		readSeq = maxReadableSeq
+	}
+
 	if err := s.seqRepo.UpdateReadSeq(ctx, userId, conversationId, readSeq); err != nil {
 		log.CtxError(ctx, "update read seq failed: %v", err)
 		return errcode.ErrInternalServer
