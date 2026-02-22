@@ -24,7 +24,7 @@ redis:
   password: "o0psknPjaPBqzb5maTMh"
   db: 0
   key_prefix: "nexo_im:"  # Redis key prefix to avoid conflicts with other systems
-  cluster: true
+  cluster: false
   tls: true
   addrs: []
 
