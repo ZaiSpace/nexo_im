@@ -5,7 +5,7 @@ import "context"
 // Register registers a new user
 func (c *Client) Register(ctx context.Context, req *RegisterRequest) (*UserInfo, error) {
 	var result UserInfo
-	if err := c.post(ctx, "/auth/register", req, &result); err != nil {
+	if err := c.post(ctx, "/im/auth/register", req, &result); err != nil {
 		return nil, err
 	}
 	return &result, nil
@@ -15,7 +15,7 @@ func (c *Client) Register(ctx context.Context, req *RegisterRequest) (*UserInfo,
 // The token is automatically stored in the client for subsequent requests
 func (c *Client) Login(ctx context.Context, req *LoginRequest) (*LoginResponse, error) {
 	var result LoginResponse
-	if err := c.post(ctx, "/auth/login", req, &result); err != nil {
+	if err := c.post(ctx, "/im/auth/login", req, &result); err != nil {
 		return nil, err
 	}
 	// Auto-set token for subsequent requests
@@ -35,7 +35,7 @@ func (c *Client) LoginWithUserId(ctx context.Context, userId, password string, p
 // InternalRegister registers a user through internal service route.
 func (c *Client) InternalRegister(ctx context.Context, req *RegisterRequest) (*UserInfo, error) {
 	var result UserInfo
-	if err := c.post(ctx, "/internal/auth/register", req, &result); err != nil {
+	if err := c.post(ctx, "/im/internal/auth/register", req, &result); err != nil {
 		return nil, err
 	}
 	return &result, nil

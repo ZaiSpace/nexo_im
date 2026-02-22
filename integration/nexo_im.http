@@ -17,10 +17,10 @@
 @clientMsgIdGroup = http-client-msg-group-001
 
 ### Health check
-GET {{baseUrl}}/health
+GET {{baseUrl}}/im/health
 
 ### Auth register
-POST {{baseUrl}}/auth/register
+POST {{baseUrl}}/im/auth/register
 Content-Type: {{contentType}}
 
 {
@@ -31,7 +31,7 @@ Content-Type: {{contentType}}
 }
 
 ### Auth register (second user for single/group tests)
-POST {{baseUrl}}/auth/register
+POST {{baseUrl}}/im/auth/register
 Content-Type: {{contentType}}
 
 {
@@ -42,7 +42,7 @@ Content-Type: {{contentType}}
 }
 
 ### Auth login
-POST {{baseUrl}}/auth/login
+POST {{baseUrl}}/im/auth/login
 Content-Type: {{contentType}}
 
 {
@@ -52,7 +52,7 @@ Content-Type: {{contentType}}
 }
 
 ### Auth login (second user, fill result token into @otherToken)
-POST {{baseUrl}}/auth/login
+POST {{baseUrl}}/im/auth/login
 Content-Type: {{contentType}}
 
 {
@@ -62,17 +62,17 @@ Content-Type: {{contentType}}
 }
 
 ### User get current user info
-GET {{baseUrl}}/user/info
+GET {{baseUrl}}/im/user/info
 Content-Type: {{contentType}}
 Authorization: Bearer {{token}}
 
 ### User get profile by user_id
-GET {{baseUrl}}/user/profile/{{otherUserId}}
+GET {{baseUrl}}/im/user/profile/{{otherUserId}}
 Content-Type: {{contentType}}
 Authorization: Bearer {{token}}
 
 ### User update user info
-PUT {{baseUrl}}/user/update
+PUT {{baseUrl}}/im/user/update
 Content-Type: {{contentType}}
 Authorization: Bearer {{token}}
 
@@ -83,7 +83,7 @@ Authorization: Bearer {{token}}
 }
 
 ### User batch get users info
-POST {{baseUrl}}/user/batch_info
+POST {{baseUrl}}/im/user/batch_info
 Content-Type: {{contentType}}
 Authorization: Bearer {{token}}
 
@@ -92,7 +92,7 @@ Authorization: Bearer {{token}}
 }
 
 ### User get users online status
-POST {{baseUrl}}/user/get_users_online_status
+POST {{baseUrl}}/im/user/get_users_online_status
 Content-Type: {{contentType}}
 Authorization: Bearer {{token}}
 
@@ -101,7 +101,7 @@ Authorization: Bearer {{token}}
 }
 
 ### Group create group
-POST {{baseUrl}}/group/create
+POST {{baseUrl}}/im/group/create
 Content-Type: {{contentType}}
 Authorization: Bearer {{token}}
 
@@ -112,7 +112,7 @@ Authorization: Bearer {{token}}
 }
 
 ### Group join group
-POST {{baseUrl}}/group/join
+POST {{baseUrl}}/im/group/join
 Content-Type: {{contentType}}
 Authorization: Bearer {{otherToken}}
 
@@ -122,7 +122,7 @@ Authorization: Bearer {{otherToken}}
 }
 
 ### Group quit group
-POST {{baseUrl}}/group/quit
+POST {{baseUrl}}/im/group/quit
 Content-Type: {{contentType}}
 Authorization: Bearer {{otherToken}}
 
@@ -131,17 +131,17 @@ Authorization: Bearer {{otherToken}}
 }
 
 ### Group get group info
-GET {{baseUrl}}/group/info?group_id={{groupId}}
+GET {{baseUrl}}/im/group/info?group_id={{groupId}}
 Content-Type: {{contentType}}
 Authorization: Bearer {{token}}
 
 ### Group get group members
-GET {{baseUrl}}/group/members?group_id={{groupId}}
+GET {{baseUrl}}/im/group/members?group_id={{groupId}}
 Content-Type: {{contentType}}
 Authorization: Bearer {{token}}
 
 ### Message send single message
-POST {{baseUrl}}/msg/send
+POST {{baseUrl}}/im/msg/send
 Content-Type: {{contentType}}
 Authorization: Bearer {{token}}
 
@@ -156,7 +156,7 @@ Authorization: Bearer {{token}}
 }
 
 ### Message send group message
-POST {{baseUrl}}/msg/send
+POST {{baseUrl}}/im/msg/send
 Content-Type: {{contentType}}
 Authorization: Bearer {{token}}
 
@@ -171,32 +171,32 @@ Authorization: Bearer {{token}}
 }
 
 ### Message pull messages (single conversation)
-GET {{baseUrl}}/msg/pull?conversation_id={{singleConversationId}}&begin_seq=1&end_seq=0&limit=20
+GET {{baseUrl}}/im/msg/pull?conversation_id={{singleConversationId}}&begin_seq=1&end_seq=0&limit=20
 Content-Type: {{contentType}}
 Authorization: Bearer {{token}}
 
 ### Message get max seq (single conversation)
-GET {{baseUrl}}/msg/max_seq?conversation_id={{singleConversationId}}
+GET {{baseUrl}}/im/msg/max_seq?conversation_id={{singleConversationId}}
 Content-Type: {{contentType}}
 Authorization: Bearer {{token}}
 
 ### Conversation get conversation list
-GET {{baseUrl}}/conversation/list
+GET {{baseUrl}}/im/conversation/list
 Content-Type: {{contentType}}
 Authorization: Bearer {{token}}
 
 ### Conversation get conversation list
-GET {{baseUrl}}/conversation/list
+GET {{baseUrl}}/im/conversation/list
 Content-Type: {{contentType}}
 Authorization: Bearer {{otherToken}}
 
 ### Conversation get conversation list (cursor pagination)
-GET {{baseUrl}}/conversation/list?limit=20
+GET {{baseUrl}}/im/conversation/list?limit=20&with_last_message=true
 Content-Type: {{contentType}}
 Authorization: Bearer {{token}}
 
 ### Conversation get all conversation list (with latest message option)
-POST {{baseUrl}}/conversation/all
+POST {{baseUrl}}/im/conversation/all
 Content-Type: {{contentType}}
 Authorization: Bearer {{token}}
 
@@ -206,12 +206,12 @@ Authorization: Bearer {{token}}
 }
 
 ### Conversation get conversation info
-GET {{baseUrl}}/conversation/info?conversation_id={{singleConversationId}}
+GET {{baseUrl}}/im/conversation/info?conversation_id={{singleConversationId}}
 Content-Type: {{contentType}}
 Authorization: Bearer {{token}}
 
 ### Conversation update conversation
-PUT {{baseUrl}}/conversation/update?conversation_id={{singleConversationId}}
+PUT {{baseUrl}}/im/conversation/update?conversation_id={{singleConversationId}}
 Content-Type: {{contentType}}
 Authorization: Bearer {{token}}
 
@@ -221,7 +221,7 @@ Authorization: Bearer {{token}}
 }
 
 ### Conversation mark read
-POST {{baseUrl}}/conversation/mark_read
+POST {{baseUrl}}/im/conversation/mark_read
 Content-Type: {{contentType}}
 Authorization: Bearer {{token}}
 
@@ -231,16 +231,16 @@ Authorization: Bearer {{token}}
 }
 
 ### Conversation get max read seq
-GET {{baseUrl}}/conversation/max_read_seq?conversation_id={{singleConversationId}}
+GET {{baseUrl}}/im/conversation/max_read_seq?conversation_id={{singleConversationId}}
 Content-Type: {{contentType}}
 Authorization: Bearer {{token}}
 
 ### Conversation get unread count
-GET {{baseUrl}}/conversation/unread_count?conversation_id={{singleConversationId}}&read_seq=0
+GET {{baseUrl}}/im/conversation/unread_count?conversation_id={{singleConversationId}}&read_seq=0
 Content-Type: {{contentType}}
 Authorization: Bearer {{token}}
 
 ### WebSocket connect
 ### Some HTTP clients support ws requests directly.
 ### If unsupported, use websocket tools (wscat/Postman) with the same URL.
-WEBSOCKET {{wsBaseUrl}}/ws?token={{token}}
+WEBSOCKET {{wsBaseUrl}}/im/ws?token={{token}}

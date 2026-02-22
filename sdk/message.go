@@ -8,7 +8,7 @@ import (
 // SendMessage sends a message (single or group chat based on request)
 func (c *Client) SendMessage(ctx context.Context, req *SendMessageRequest) (*MessageInfo, error) {
 	var result MessageInfo
-	if err := c.post(ctx, "/msg/send", req, &result); err != nil {
+	if err := c.post(ctx, "/im/msg/send", req, &result); err != nil {
 		return nil, err
 	}
 	return &result, nil
@@ -17,7 +17,7 @@ func (c *Client) SendMessage(ctx context.Context, req *SendMessageRequest) (*Mes
 // InternalSendMessage sends a message via internal route.
 func (c *Client) InternalSendMessage(ctx context.Context, req *SendMessageRequest, opts ...RequestOption) (*MessageInfo, error) {
 	var result MessageInfo
-	if err := c.post(ctx, "/internal/msg/send", req, &result, opts...); err != nil {
+	if err := c.post(ctx, "/im/internal/msg/send", req, &result, opts...); err != nil {
 		return nil, err
 	}
 	return &result, nil
@@ -65,7 +65,7 @@ func (c *Client) PullMessages(ctx context.Context, conversationId string, beginS
 	}
 
 	var result PullMessagesResponse
-	if err := c.get(ctx, "/msg/pull", params, &result); err != nil {
+	if err := c.get(ctx, "/im/msg/pull", params, &result); err != nil {
 		return nil, err
 	}
 	return &result, nil
@@ -75,7 +75,7 @@ func (c *Client) PullMessages(ctx context.Context, conversationId string, beginS
 func (c *Client) GetMaxSeq(ctx context.Context, conversationId string) (int64, error) {
 	params := map[string]string{"conversation_id": conversationId}
 	var result MaxSeqResponse
-	if err := c.get(ctx, "/msg/max_seq", params, &result); err != nil {
+	if err := c.get(ctx, "/im/msg/max_seq", params, &result); err != nil {
 		return 0, err
 	}
 	return result.MaxSeq, nil

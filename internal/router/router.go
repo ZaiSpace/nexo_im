@@ -21,20 +21,21 @@ func SetupRouter(h *server.Hertz, handlers *Handlers, wsServer *gateway.WsServer
 	h.Use(middleware.TraceID())
 	h.Use(middleware.Logger())
 
+	root := h.Group("/im")
 	// Health check
-	h.GET("/health", func(ctx context.Context, c *app.RequestContext) {
+	root.GET("/health", func(ctx context.Context, c *app.RequestContext) {
 		c.JSON(consts.StatusOK, map[string]string{"status": "ok"})
 	})
 
 	// Auth routes (no auth required)
-	authGroup := h.Group("/auth")
+	authGroup := root.Group("/auth")
 	{
 		authGroup.POST("/register", handlers.Auth.Register)
 		authGroup.POST("/login", handlers.Auth.Login)
 	}
 
 	// User routes (JWT auth required)
-	userGroup := h.Group("/user", middleware.JWTAuth())
+	userGroup := root.Group("/user", middleware.JWTAuth())
 	{
 		userGroup.GET("/info", handlers.User.GetUserInfo)
 		userGroup.GET("/profile/:user_id", handlers.User.GetUserInfoById)
@@ -44,7 +45,7 @@ func SetupRouter(h *server.Hertz, handlers *Handlers, wsServer *gateway.WsServer
 	}
 
 	// Group routes (JWT auth required)
-	groupGroup := h.Group("/group", middleware.JWTAuth())
+	groupGroup := root.Group("/group", middleware.JWTAuth())
 	{
 		groupGroup.POST("/create", handlers.Group.CreateGroup)
 		groupGroup.POST("/join", handlers.Group.JoinGroup)
@@ -54,7 +55,7 @@ func SetupRouter(h *server.Hertz, handlers *Handlers, wsServer *gateway.WsServer
 	}
 
 	// Message routes (JWT auth required)
-	msgGroup := h.Group("/msg", middleware.JWTAuth())
+	msgGroup := root.Group("/msg", middleware.JWTAuth())
 	{
 		msgGroup.POST("/send", handlers.Message.SendMessage)
 		msgGroup.GET("/pull", handlers.Message.PullMessages)
@@ -62,7 +63,7 @@ func SetupRouter(h *server.Hertz, handlers *Handlers, wsServer *gateway.WsServer
 	}
 
 	// Conversation routes (JWT auth required)
-	convGroup := h.Group("/conversation", middleware.JWTAuth())
+	convGroup := root.Group("/conversation", middleware.JWTAuth())
 	{
 		convGroup.GET("/list", handlers.Conversation.GetConversationList)
 		convGroup.POST("/list", handlers.Conversation.GetConversationList)
@@ -76,12 +77,12 @@ func SetupRouter(h *server.Hertz, handlers *Handlers, wsServer *gateway.WsServer
 	}
 
 	// WebSocket route using net/http handler via Hertz adaptor
-	h.GET("/ws", adaptor.HertzHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	root.GET("/ws", adaptor.HertzHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		wsServer.HandleConnection(r.Context(), w, r)
 	})))
 
 	// Internal service routes (service-to-service auth required)
-	internalGroup := h.Group("/internal", middleware.InternalAuth())
+	internalGroup := root.Group("/internal", middleware.InternalAuth())
 	{
 		internalGroup.GET("/health", func(ctx context.Context, c *app.RequestContext) {
 			c.JSON(consts.StatusOK, map[string]string{"status": "ok"})
@@ -90,7 +91,7 @@ func SetupRouter(h *server.Hertz, handlers *Handlers, wsServer *gateway.WsServer
 	}
 
 	// Internal user routes (service-to-service auth + acting user required)
-	internalUserGroup := h.Group("/internal/user", middleware.InternalAuthAsUser())
+	internalUserGroup := root.Group("/internal/user", middleware.InternalAuthAsUser())
 	{
 		internalUserGroup.GET("/info", handlers.User.GetUserInfo)
 		internalUserGroup.GET("/profile/:user_id", handlers.User.GetUserInfoById)
@@ -100,13 +101,13 @@ func SetupRouter(h *server.Hertz, handlers *Handlers, wsServer *gateway.WsServer
 	}
 
 	// Internal message routes (service-to-service auth + acting user required)
-	internalMsgGroup := h.Group("/internal/msg", middleware.InternalAuthAsUser())
+	internalMsgGroup := root.Group("/internal/msg", middleware.InternalAuthAsUser())
 	{
 		internalMsgGroup.POST("/send", handlers.Message.SendMessage)
 	}
 
 	// Internal conversation routes (service-to-service auth + acting user required)
-	internalConvGroup := h.Group("/internal/conversation", middleware.InternalAuthAsUser())
+	internalConvGroup := root.Group("/internal/conversation", middleware.InternalAuthAsUser())
 	{
 		internalConvGroup.GET("/list", handlers.Conversation.GetConversationList)
 		internalConvGroup.POST("/list", handlers.Conversation.GetConversationList)
