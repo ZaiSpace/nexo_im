@@ -21,7 +21,7 @@ mysql:
 redis:
   host: master.island-prod.zacd3o.use1.cache.amazonaws.com
   port: 6379
-  password: ""
+  password: "o0psknPjaPBqzb5maTMh"
   db: 0
   key_prefix: "nexo_im:"  # Redis key prefix to avoid conflicts with other systems
   cluster: true
