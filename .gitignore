@@ -33,3 +33,4 @@ go.work.sum
 open-im-server/
 bin/
 *.log
+deploy/.build

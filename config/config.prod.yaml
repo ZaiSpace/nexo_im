@@ -9,17 +9,17 @@ server:
     - "http://localhost:8080"
 
 mysql:
-  host: island-test.cqf8c8cyquuq.us-east-1.rds.amazonaws.com
+  host: island-prod.cluster-cqf8c8cyquuq.us-east-1.rds.amazonaws.com
   port: 3306
   user: admin
-  password: "qsKRnLVJC3FPQdh9"
+  password: "q3VYkLnxjydXimUEEsJn"
   database: nexo_im
   charset: utf8mb4
   max_open_conns: 100
   max_idle_conns: 10
 
 redis:
-  host: clustercfg.island-test.zacd3o.use1.cache.amazonaws.com
+  host: master.island-prod.zacd3o.use1.cache.amazonaws.com
   port: 6379
   password: ""
   db: 0

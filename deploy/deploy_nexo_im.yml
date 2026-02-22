@@ -53,48 +53,36 @@
             msg: "Missing {{ app_root }}/go.mod after sync. Check synchronize src path and inventory target."
           when: not go_mod_stat.stat.exists
 
-        - name: Configure git to use SSH for GitHub on remote
-          ansible.builtin.command: git config --global url.git@github.com:.insteadOf https://github.com/
-          changed_when: true
-
-        - name: Configure Go private module settings on remote
-          ansible.builtin.command: go env -w {{ item }}
-          environment:
-            PATH: "/usr/local/go/bin:{{ ansible_env.PATH | default('/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin') }}"
-          loop:
-            - "GOPRIVATE={{ go_private }}"
-            - "GONOSUMDB={{ go_private }}"
-            - "GONOPROXY={{ go_private }}"
-          changed_when: true
-
         - name: Ensure bin directory exists
           ansible.builtin.file:
             path: "{{ app_root }}/bin"
             state: directory
             mode: "0755"
 
-        - name: Download Go modules on remote host
-          ansible.builtin.command: /usr/local/go/bin/go mod download
-          args:
-            chdir: "{{ app_root }}"
-          environment:
-            GOFLAGS: "-mod=mod"
-            GOPRIVATE: "{{ go_private }}"
-            GONOSUMDB: "{{ go_private }}"
-            GONOPROXY: "{{ go_private }}"
-            PATH: "/usr/local/go/bin:{{ ansible_env.PATH | default('/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin') }}"
+        - name: Validate local build binary path is provided
+          ansible.builtin.assert:
+            that:
+              - local_build_bin is defined
+              - (local_build_bin | length) > 0
+            fail_msg: "local_build_bin is required. Use make targets that pass -e local_build_bin=..."
 
-        - name: Build nexo_im binary on remote host
-          ansible.builtin.command: /usr/local/go/bin/go build -o bin/nexo_im ./cmd/server
-          args:
-            chdir: "{{ app_root }}"
-          environment:
-            GOFLAGS: "-mod=mod"
-            CGO_ENABLED: "0"
-            GOPRIVATE: "{{ go_private }}"
-            GONOSUMDB: "{{ go_private }}"
-            GONOPROXY: "{{ go_private }}"
-            PATH: "/usr/local/go/bin:{{ ansible_env.PATH | default('/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin') }}"
+        - name: Check local build binary exists on control node
+          ansible.builtin.stat:
+            path: "{{ local_build_bin }}"
+          delegate_to: localhost
+          become: false
+          register: local_build_bin_stat
+
+        - name: Fail when local build binary is missing
+          ansible.builtin.fail:
+            msg: "Local build binary not found: {{ local_build_bin }}. Run local build first."
+          when: not local_build_bin_stat.stat.exists
+
+        - name: Upload locally built nexo_im binary
+          ansible.builtin.copy:
+            src: "{{ local_build_bin }}"
+            dest: "{{ app_root }}/bin/nexo_im"
+            mode: "0755"
 
         - name: Render supervisor config
           ansible.builtin.template:
