@@ -152,6 +152,25 @@ func TestMessage_SendSingleChat(t *testing.T) {
 			t.Errorf("idempotent sends should return same seq: %d vs %d", msg1.Seq, msg2.Seq)
 		}
 	})
+
+	t.Run("send message to nonexistent user", func(t *testing.T) {
+		req := SendMessageRequest{
+			ClientMsgId: generateClientMsgId(),
+			RecvId:      generateUserId("missing_receiver"),
+			SessionType: SessionTypeSingle,
+			MsgType:     MsgTypeText,
+			Content: MessageContent{
+				Text: "should fail",
+			},
+		}
+
+		resp, err := client1.POST("/msg/send", req)
+		if err != nil {
+			t.Fatalf("send message failed: %v", err)
+		}
+
+		AssertError(t, resp, 2006, "sending to nonexistent user should return user not found")
+	})
 }
 
 func TestMessage_SendGroupChat(t *testing.T) {

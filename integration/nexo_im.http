@@ -1,7 +1,8 @@
 ### nexo_im manual integration requests (non-/internal routes)
 ### Usage: VSCode REST Client / IntelliJ HTTP Client
 
-@baseUrl = http://test-app.zaisland.com
+#@baseUrl = http://test-app.zaisland.com
+@baseUrl = http://localhost:8080
 @wsBaseUrl = ws://54.196.109.226:8080
 @contentType = application/json
 @token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxMjU0NjczNjA1Mzg2ODgsImRldmljZV9pZCI6MCwiaXNzIjoiaXNsYW5kX2FjY291bnQiLCJleHAiOjE3NzE5OTQ4NzksIm5iZiI6MTc3MTM5MDA3OH0.oci_uey4CfsG7tpSE3WM97n6vNunBqHm4GF9yAAlxJY
@@ -65,6 +66,7 @@ Content-Type: {{contentType}}
 GET {{baseUrl}}/im/user/info
 Content-Type: {{contentType}}
 Authorization: Bearer {{token}}
+Ignore-Auth: 1
 
 ### User get profile by user_id
 GET {{baseUrl}}/im/user/profile/{{otherUserId}}

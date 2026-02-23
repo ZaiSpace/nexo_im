@@ -67,6 +67,27 @@ func (s *MessageService) SendSingleMessage(ctx context.Context, senderId string,
 		return nil, errcode.ErrInvalidParam
 	}
 
+	// Validate sender/receiver existence to avoid writing conversations with invalid user ids.
+	senderExists, err := s.userRepo.Exists(ctx, senderId)
+	if err != nil {
+		log.CtxError(ctx, "check sender exists failed: sender_id=%s, error=%v", senderId, err)
+		return nil, errcode.ErrInternalServer
+	}
+	if !senderExists {
+		return nil, errcode.ErrUserNotFound
+	}
+
+	if req.RecvId != senderId {
+		recvExists, err := s.userRepo.Exists(ctx, req.RecvId)
+		if err != nil {
+			log.CtxError(ctx, "check receiver exists failed: recv_id=%s, error=%v", req.RecvId, err)
+			return nil, errcode.ErrInternalServer
+		}
+		if !recvExists {
+			return nil, errcode.ErrUserNotFound
+		}
+	}
+
 	// Check for idempotency
 	existingMsg, err := s.msgRepo.GetByClientMsgId(ctx, senderId, req.ClientMsgId)
 	if err != nil {

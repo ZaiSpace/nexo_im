@@ -90,7 +90,8 @@ func extractToken(c *app.RequestContext) (string, error) {
 }
 
 func isTestEnv() bool {
-	return strings.EqualFold(strings.TrimSpace(os.Getenv("INFRA_ENV")), config.TEST)
+	return strings.EqualFold(strings.TrimSpace(os.Getenv("INFRA_ENV")), config.TEST) ||
+		strings.EqualFold(strings.TrimSpace(os.Getenv("INFRA_ENV")), config.LOCAL)
 }
 
 // ParseTokenWithFallback tries nexo token first, then falls back to external token if enabled.
