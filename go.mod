@@ -9,7 +9,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/hertz-contrib/obs-opentelemetry/tracing v0.4.1
-	github.com/mbeoliero/kit v0.0.1-beta.1
+	github.com/mbeoliero/kit v0.0.2-beta.1
 	github.com/redis/go-redis/v9 v9.17.3
 	github.com/sony/sonyflake v1.3.0
 	github.com/spf13/viper v1.21.0
