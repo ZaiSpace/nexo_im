@@ -6,6 +6,7 @@ import (
 
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/google/uuid"
+	"go.opentelemetry.io/otel/trace"
 )
 
 const (
@@ -20,19 +21,9 @@ const (
 // handlers (e.g. websocket net/http handlers) can read the same value.
 func TraceID() app.HandlerFunc {
 	return func(ctx context.Context, c *app.RequestContext) {
-		traceID := resolveTraceID(ctx, c)
-		ctx = WithTraceID(ctx, traceID)
-
-		c.Set(TraceIDContextKey, traceID)
-		c.Request.Header.Set(TraceIDHeader, traceID)
-		c.Request.Header.Set(XTraceIDHeader, traceID)
-		c.Response.Header.Set(TraceIDHeader, traceID)
-		c.Response.Header.Set(XTraceIDHeader, traceID)
-
+		spanCtx := trace.SpanContextFromContext(ctx)
+		c.Response.Header.Set("Trace-Id", spanCtx.TraceID().String())
 		c.Next(ctx)
-
-		c.Response.Header.Set(TraceIDHeader, traceID)
-		c.Response.Header.Set(XTraceIDHeader, traceID)
 	}
 }
 

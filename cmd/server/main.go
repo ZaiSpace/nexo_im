@@ -6,9 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-
-	"github.com/cloudwego/hertz/pkg/app/server"
-	"github.com/mbeoliero/kit/log"
+	"time"
 
 	"github.com/ZaiSpace/nexo_im/internal/config"
 	"github.com/ZaiSpace/nexo_im/internal/gateway"
@@ -17,6 +15,10 @@ import (
 	"github.com/ZaiSpace/nexo_im/internal/router"
 	"github.com/ZaiSpace/nexo_im/internal/service"
 	"github.com/ZaiSpace/nexo_im/pkg/constant"
+	"github.com/ZaiSpace/nexo_im/pkg/tracing"
+	"github.com/cloudwego/hertz/pkg/app/server"
+	hertztracing "github.com/hertz-contrib/obs-opentelemetry/tracing"
+	"github.com/mbeoliero/kit/log"
 )
 
 func main() {
@@ -76,10 +78,15 @@ func main() {
 		Conversation: handler.NewConversationHandler(convService),
 	}
 
+	tracing.Init()
+	tracer, tCfg := hertztracing.NewServerTracer()
 	// Create Hertz server
 	h := server.Default(
 		server.WithHostPorts(fmt.Sprintf(":%d", cfg.Server.HTTPPort)),
+		server.WithExitWaitTime(time.Second*30),
+		tracer,
 	)
+	h.Use(hertztracing.ServerMiddleware(tCfg))
 
 	// Setup routes
 	router.SetupRouter(h, handlers, wsServer)

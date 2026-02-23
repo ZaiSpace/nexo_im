@@ -17,8 +17,8 @@ import (
 // SetupRouter sets up all routes
 func SetupRouter(h *server.Hertz, handlers *Handlers, wsServer *gateway.WsServer) {
 	// Global middlewares
-	h.Use(middleware.CORS())
 	h.Use(middleware.TraceID())
+	h.Use(middleware.CORS())
 	h.Use(middleware.Logger())
 
 	root := h.Group("/im")
