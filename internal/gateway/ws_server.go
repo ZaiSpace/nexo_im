@@ -29,6 +29,7 @@ type WsServer struct {
 	registerChan   chan *Client
 	unregisterChan chan *Client
 	pushChan       chan *PushTask
+	appPushSender  AppPushSender
 	msgService     *service.MessageService
 	convService    *service.ConversationService
 	onlineUserNum  atomic.Int64
@@ -124,24 +125,64 @@ func (s *WsServer) pushLoop(ctx context.Context) {
 
 // processPushTask processes a single push task
 func (s *WsServer) processPushTask(ctx context.Context, task *PushTask) {
+	if task == nil || task.Msg == nil || len(task.TargetIds) == 0 {
+		return
+	}
+
 	msgData := s.messageToMsgData(task.Msg)
+	seen := make(map[string]struct{}, len(task.TargetIds))
 
 	for _, userId := range task.TargetIds {
-		clients, ok := s.userMap.GetAll(userId)
-		if !ok {
+		if userId == "" {
 			continue
 		}
+		if _, ok := seen[userId]; ok {
+			continue
+		}
+		seen[userId] = struct{}{}
 
-		for _, client := range clients {
-			// Skip excluded connection
-			if task.ExcludeId != "" && client.ConnId == task.ExcludeId {
-				continue
-			}
+		clients, ok := s.userMap.GetAll(userId)
+		if ok {
+			for _, client := range clients {
+				// Skip excluded connection
+				if task.ExcludeId != "" && client.ConnId == task.ExcludeId {
+					continue
+				}
 
-			if err := client.PushMessage(ctx, msgData); err != nil {
-				log.CtxDebug(ctx, "push to client failed: user_id=%s, conn_id=%s, error=%v", userId, client.ConnId, err)
+				if err := client.PushMessage(ctx, msgData); err != nil {
+					log.CtxDebug(ctx, "push to client failed: user_id=%s, conn_id=%s, error=%v", userId, client.ConnId, err)
+				}
 			}
 		}
+
+		if s.userMap.IsOnline(ctx, userId) {
+			continue
+		}
+		s.pushToAppIfNeeded(ctx, task.Msg, userId)
+	}
+}
+
+// SetAppPushSender sets the offline app push sender.
+func (s *WsServer) SetAppPushSender(sender AppPushSender) {
+	s.appPushSender = sender
+}
+
+func (s *WsServer) pushToAppIfNeeded(ctx context.Context, msg *entity.Message, userId string) {
+	if s.appPushSender == nil || msg == nil || userId == "" {
+		return
+	}
+	// Sender should never receive offline push for their own message.
+	if userId == msg.SenderId {
+		return
+	}
+
+	req := buildAppPushRequest(msg, userId)
+	if req == nil {
+		return
+	}
+	if err := s.appPushSender.SendPush(ctx, req); err != nil {
+		log.CtxWarn(ctx, "app push failed: user_id=%s, conversation_id=%s, seq=%d, error=%v",
+			userId, msg.ConversationId, msg.Seq, err)
 	}
 }
 
@@ -344,6 +385,56 @@ func (s *WsServer) messageToMsgData(msg *entity.Message) *MessageData {
 			Custom: custom,
 		},
 		SendAt: msg.SendAt,
+	}
+}
+
+func buildAppPushRequest(msg *entity.Message, userId string) *AppPushRequest {
+	if msg == nil || userId == "" {
+		return nil
+	}
+	data := map[string]any{
+		"conversation_id": msg.ConversationId,
+		"seq":             msg.Seq,
+		"client_msg_id":   msg.ClientMsgId,
+		"sender_id":       msg.SenderId,
+		"recv_id":         msg.RecvId,
+		"group_id":        msg.GroupId,
+		"session_type":    msg.SessionType,
+		"msg_type":        msg.MsgType,
+	}
+
+	title := "You have a new message"
+	if msg.SessionType == constant.SessionTypeGroup {
+		title = "You have a new group message"
+	}
+
+	return &AppPushRequest{
+		UserId: userId,
+		Title:  title,
+		Body:   buildPushBody(msg),
+		Data:   data,
+	}
+}
+
+func buildPushBody(msg *entity.Message) string {
+	if msg == nil {
+		return "You received a new message"
+	}
+	switch {
+	case msg.ContentText != "":
+		return msg.ContentText
+	case msg.ContentImage != "":
+		return "[Image]"
+	case msg.ContentVideo != "":
+		return "[Video]"
+	case msg.ContentAudio != "":
+		return "[Audio]"
+	case msg.ContentFile != "":
+		return "[File]"
+	case msg.ContentCustom != nil && *msg.ContentCustom != "":
+		return "[Custom]"
+	default:
+		return "You received a new message"
 	}
 }
 

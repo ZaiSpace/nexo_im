@@ -61,6 +61,7 @@ func main() {
 
 	// Initialize WebSocket server
 	wsServer := gateway.NewWsServer(cfg, repos.Redis, msgService, convService)
+	wsServer.SetAppPushSender(gateway.NewDefaultAppPushSender())
 
 	// Set message pusher for message service
 	msgService.SetPusher(wsServer)
