@@ -12,6 +12,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/mbeoliero/kit/log"
 	"github.com/redis/go-redis/v9"
+	"github.com/tidwall/gjson"
 
 	"github.com/ZaiSpace/nexo_im/internal/config"
 	"github.com/ZaiSpace/nexo_im/internal/entity"
@@ -176,7 +177,15 @@ func (s *WsServer) pushToAppIfNeeded(ctx context.Context, msg *entity.Message, u
 		return
 	}
 
-	req := buildAppPushRequest(msg, userId)
+	userInfoProvider, ok := s.appPushSender.(AppPushUserInfoProvider)
+	if !ok {
+		return
+	}
+	req, err := buildAppPushRequest(ctx, msg, userId, userInfoProvider)
+	if err != nil {
+		log.CtxError(ctx, "build app push request failed: user_id=%s, error=%v", userId, err)
+		return
+	}
 	if req == nil {
 		return
 	}
@@ -388,9 +397,9 @@ func (s *WsServer) messageToMsgData(msg *entity.Message) *MessageData {
 	}
 }
 
-func buildAppPushRequest(msg *entity.Message, userId string) *AppPushRequest {
+func buildAppPushRequest(ctx context.Context, msg *entity.Message, userId string, userInfoProvider AppPushUserInfoProvider) (*AppPushRequest, error) {
 	if msg == nil || userId == "" {
-		return nil
+		return nil, nil
 	}
 	data := map[string]any{
 		"conversation_id": msg.ConversationId,
@@ -403,17 +412,31 @@ func buildAppPushRequest(msg *entity.Message, userId string) *AppPushRequest {
 		"msg_type":        msg.MsgType,
 	}
 
+	userIdInt, err := parseUserId(userId)
+	if err != nil {
+		return nil, err
+	}
+
 	title := "You have a new message"
 	if msg.SessionType == constant.SessionTypeGroup {
 		title = "You have a new group message"
+	} else if msg.SessionType == constant.SessionTypeSingle && userInfoProvider != nil {
+		senderIdInt, parseErr := parseUserId(msg.SenderId)
+		if parseErr == nil {
+			senderDisplayName, lookupErr := userInfoProvider.GetUserDisplayName(ctx, senderIdInt)
+			senderDisplayName = strings.TrimSpace(senderDisplayName)
+			if lookupErr == nil && senderDisplayName != "" {
+				title = senderDisplayName
+			}
+		}
 	}
 
 	return &AppPushRequest{
-		UserId: userId,
+		UserId: userIdInt,
 		Title:  title,
 		Body:   buildPushBody(msg),
 		Data:   data,
-	}
+	}, nil
 }
 
 func buildPushBody(msg *entity.Message) string {
@@ -432,7 +455,7 @@ func buildPushBody(msg *entity.Message) string {
 	case msg.ContentFile != "":
 		return "[File]"
 	case msg.ContentCustom != nil && *msg.ContentCustom != "":
-		return "[Custom]"
+		return gjson.Get(*msg.ContentCustom, "show_text").String() // 统一约定按这个展示
 	default:
 		return "You received a new message"
 	}

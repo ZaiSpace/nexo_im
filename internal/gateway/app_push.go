@@ -17,13 +17,14 @@ import (
 
 const (
 	// TODO: move to config after integration is stable.
-	appGatewayPushBaseURL = "http://localhost:8000"
-	appGatewayPushPath    = "/api/push/send_push"
-	appPushBizTypeIM      = "im"
+	appGatewayPushBaseURL  = "http://localhost:8000"
+	appGatewayPushPath     = "/api/push/send_push"
+	appGatewayUserInfoPath = "/api/user/get_user_info"
+	appPushBizTypeIM       = "im"
 )
 
 type AppPushRequest struct {
-	UserId string
+	UserId int64
 	Title  string
 	Body   string
 	Data   map[string]any
@@ -31,6 +32,10 @@ type AppPushRequest struct {
 
 type AppPushSender interface {
 	SendPush(ctx context.Context, req *AppPushRequest) error
+}
+
+type AppPushUserInfoProvider interface {
+	GetUserDisplayName(ctx context.Context, userId int64) (string, error)
 }
 
 type appGatewayPushSender struct {
@@ -55,6 +60,26 @@ type appGatewayCommonParam struct {
 type appGatewayResp struct {
 	Code    int64  `json:"code"`
 	Message string `json:"message"`
+}
+
+type appGatewayGetUserInfoReq struct {
+	UserId      int64                  `json:"user_id"`
+	CommonParam *appGatewayCommonParam `json:"common_param,omitempty"`
+}
+
+type appGatewayGetUserInfoResp struct {
+	Code    int64                          `json:"code"`
+	Message string                         `json:"message"`
+	Data    *appGatewayGetUserInfoRespData `json:"data"`
+}
+
+type appGatewayGetUserInfoRespData struct {
+	UserInfo *appGatewayUserInfo `json:"user_info"`
+}
+
+type appGatewayUserInfo struct {
+	Name     string `json:"name"`
+	UniqueId string `json:"unique_id"`
 }
 
 func NewDefaultAppPushSender() AppPushSender {
@@ -82,11 +107,6 @@ func (s *appGatewayPushSender) SendPush(ctx context.Context, req *AppPushRequest
 		return fmt.Errorf("hertz client is nil")
 	}
 
-	userId, err := parseUserId(req.UserId)
-	if err != nil {
-		return err
-	}
-
 	dataJSON := ""
 	if len(req.Data) > 0 {
 		raw, marshalErr := sonic.Marshal(req.Data)
@@ -97,13 +117,13 @@ func (s *appGatewayPushSender) SendPush(ctx context.Context, req *AppPushRequest
 	}
 
 	body := &appGatewaySendPushBody{
-		UserId:   userId,
+		UserId:   req.UserId,
 		BizType:  appPushBizTypeIM,
 		Title:    req.Title,
 		Body:     req.Body,
 		DataJSON: dataJSON,
 		CommonParam: &appGatewayCommonParam{
-			UserId: userId,
+			UserId: req.UserId,
 		},
 	}
 	payload, err := sonic.Marshal(body)
@@ -144,6 +164,65 @@ func (s *appGatewayPushSender) SendPush(ctx context.Context, req *AppPushRequest
 	}
 
 	return nil
+}
+
+func (s *appGatewayPushSender) GetUserDisplayName(ctx context.Context, userId int64) (string, error) {
+	if userId <= 0 {
+		return "", fmt.Errorf("invalid user_id: %d", userId)
+	}
+	if s.client == nil {
+		return "", fmt.Errorf("hertz client is nil")
+	}
+
+	body := &appGatewayGetUserInfoReq{
+		UserId: userId,
+		CommonParam: &appGatewayCommonParam{
+			UserId: userId,
+		},
+	}
+	payload, err := sonic.Marshal(body)
+	if err != nil {
+		return "", fmt.Errorf("marshal get_user_info request failed: %w", err)
+	}
+
+	reqURL := strings.TrimRight(s.baseURL, "/") + appGatewayUserInfoPath
+	hzReq := &protocol.Request{}
+	hzResp := &protocol.Response{}
+	hzReq.SetMethod(consts.MethodPost)
+	hzReq.SetRequestURI(reqURL)
+	hzReq.Header.Set("Content-Type", "application/json")
+	hzReq.SetBody(payload)
+
+	if traceID := middleware.GetTraceID(ctx); traceID != "" {
+		hzReq.Header.Set(middleware.TraceIDHeader, traceID)
+		hzReq.Header.Set(middleware.XTraceIDHeader, traceID)
+	}
+
+	if err = s.client.Do(ctx, hzReq, hzResp); err != nil {
+		return "", fmt.Errorf("send get_user_info request failed: %w", err)
+	}
+	respBody := hzResp.Body()
+	statusCode := hzResp.StatusCode()
+	if statusCode < 200 || statusCode >= 300 {
+		return "", fmt.Errorf("get_user_info request status=%d body=%s", statusCode, string(respBody))
+	}
+
+	var resp appGatewayGetUserInfoResp
+	if err = sonic.Unmarshal(respBody, &resp); err != nil {
+		return "", fmt.Errorf("decode get_user_info response failed: %w", err)
+	}
+	if resp.Code != 0 {
+		return "", fmt.Errorf("get_user_info response code=%d msg=%s", resp.Code, resp.Message)
+	}
+	if resp.Data == nil || resp.Data.UserInfo == nil {
+		return "", nil
+	}
+
+	name := strings.TrimSpace(resp.Data.UserInfo.Name)
+	if name != "" {
+		return name, nil
+	}
+	return strings.TrimSpace(resp.Data.UserInfo.UniqueId), nil
 }
 
 func parseUserId(raw string) (int64, error) {

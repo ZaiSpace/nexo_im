@@ -37,12 +37,22 @@ func (m *mockClientConn) SetWriteDeadline(_ time.Time) error {
 }
 
 type mockAppPushSender struct {
-	calls []*AppPushRequest
+	calls         []*AppPushRequest
+	userNameByID  map[int64]string
+	lookupUserIDs []int64
 }
 
 func (m *mockAppPushSender) SendPush(_ context.Context, req *AppPushRequest) error {
 	m.calls = append(m.calls, req)
 	return nil
+}
+
+func (m *mockAppPushSender) GetUserDisplayName(_ context.Context, userID int64) (string, error) {
+	m.lookupUserIDs = append(m.lookupUserIDs, userID)
+	if m.userNameByID == nil {
+		return "", nil
+	}
+	return m.userNameByID[userID], nil
 }
 
 func newTestWsServer() *WsServer {
@@ -84,8 +94,8 @@ func TestProcessPushTask_OfflineUserTriggersAppPush(t *testing.T) {
 	if len(mockPush.calls) != 1 {
 		t.Fatalf("expected 1 app push call, got %d", len(mockPush.calls))
 	}
-	if mockPush.calls[0].UserId != "200" {
-		t.Fatalf("expected app push target user 200, got %s", mockPush.calls[0].UserId)
+	if mockPush.calls[0].UserId != 200 {
+		t.Fatalf("expected app push target user 200, got %d", mockPush.calls[0].UserId)
 	}
 }
 
@@ -129,5 +139,33 @@ func TestProcessPushTask_SenderNeverTriggersAppPush(t *testing.T) {
 
 	if len(mockPush.calls) != 0 {
 		t.Fatalf("expected sender to be skipped for app push, got %d calls", len(mockPush.calls))
+	}
+}
+
+func TestProcessPushTask_OfflineSingleUserUsesSenderDisplayNameInTitle(t *testing.T) {
+	s := newTestWsServer()
+	mockPush := &mockAppPushSender{
+		userNameByID: map[int64]string{
+			100: "Alice",
+		},
+	}
+	s.SetAppPushSender(mockPush)
+
+	msg := newMessage("100", "200")
+	task := &PushTask{
+		Msg:       msg,
+		TargetIds: []string{"200"},
+	}
+
+	s.processPushTask(context.Background(), task)
+
+	if len(mockPush.calls) != 1 {
+		t.Fatalf("expected 1 app push call, got %d", len(mockPush.calls))
+	}
+	if len(mockPush.lookupUserIDs) != 1 || mockPush.lookupUserIDs[0] != 100 {
+		t.Fatalf("expected lookup sender id 100 once, got %+v", mockPush.lookupUserIDs)
+	}
+	if got := mockPush.calls[0].Title; got != "Alice sent you a message" {
+		t.Fatalf("expected title from sender display name, got %q", got)
 	}
 }

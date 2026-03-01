@@ -43,7 +43,7 @@ func TestAppGatewayPushSender_SendPush_ActorUserIdFallbackAndNoSignHeaders(t *te
 	}
 
 	err := s.SendPush(context.Background(), &AppPushRequest{
-		UserId: "u___42",
+		UserId: 42,
 		Title:  "title",
 		Body:   "body",
 		Data: map[string]any{
