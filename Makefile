@@ -246,6 +246,9 @@ setup:
 	chmod +x scripts/*.sh 2>/dev/null || true
 	@echo "$(GREEN)Setup complete$(NC)"
 
+replace_mod:
+	rg -l 'github.com/ZaiSpace/nexo_im' | xargs sd 'github.com/ZaiSpace/nexo_im' 'github.com/ZaiSpace/nexo_im'
+
 #==============================================================================
 # Deploy Logs
 #==============================================================================

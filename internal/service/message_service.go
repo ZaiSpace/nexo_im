@@ -57,6 +57,43 @@ type SendMessageRequest struct {
 	Content     entity.MessageContent `json:"content"`
 }
 
+func validateMessageContent(msgType int32, content entity.MessageContent) error {
+	if content.PayloadCount() != 1 {
+		return errcode.ErrInvalidParam
+	}
+
+	switch msgType {
+	case constant.MsgTypeText:
+		if content.Text == nil {
+			return errcode.ErrInvalidParam
+		}
+	case constant.MsgTypeImage:
+		if content.Image == nil {
+			return errcode.ErrInvalidParam
+		}
+	case constant.MsgTypeVideo:
+		if content.Video == nil {
+			return errcode.ErrInvalidParam
+		}
+	case constant.MsgTypeAudio:
+		if content.Audio == nil {
+			return errcode.ErrInvalidParam
+		}
+	case constant.MsgTypeFile:
+		if content.File == nil {
+			return errcode.ErrInvalidParam
+		}
+	case constant.MsgTypeCustom:
+		if len(content.Custom) == 0 {
+			return errcode.ErrInvalidParam
+		}
+	default:
+		return errcode.ErrInvalidParam
+	}
+
+	return nil
+}
+
 // SendSingleMessage sends a single chat message
 func (s *MessageService) SendSingleMessage(ctx context.Context, senderId string, req *SendMessageRequest) (*entity.Message, error) {
 	// Validate request
@@ -65,6 +102,9 @@ func (s *MessageService) SendSingleMessage(ctx context.Context, senderId string,
 	}
 	if req.ClientMsgId == "" {
 		return nil, errcode.ErrInvalidParam
+	}
+	if err := validateMessageContent(req.MsgType, req.Content); err != nil {
+		return nil, err
 	}
 
 	// Validate sender/receiver existence to avoid writing conversations with invalid user ids.
@@ -121,9 +161,9 @@ func (s *MessageService) SendSingleMessage(ctx context.Context, senderId string,
 			RecvId:         req.RecvId,
 			SessionType:    constant.SessionTypeSingle,
 			MsgType:        req.MsgType,
+			Content:        req.Content,
 			SendAt:         now,
 		}
-		msg.SetContent(req.Content)
 
 		if err = s.msgRepo.Create(ctx, tx, msg); err != nil {
 			return err
@@ -171,6 +211,9 @@ func (s *MessageService) SendGroupMessage(ctx context.Context, senderId string, 
 	}
 	if req.ClientMsgId == "" {
 		return nil, errcode.ErrInvalidParam
+	}
+	if err := validateMessageContent(req.MsgType, req.Content); err != nil {
+		return nil, err
 	}
 
 	// Check permission: sender must be active group member
@@ -224,9 +267,9 @@ func (s *MessageService) SendGroupMessage(ctx context.Context, senderId string, 
 			GroupId:        req.GroupId,
 			SessionType:    constant.SessionTypeGroup,
 			MsgType:        req.MsgType,
+			Content:        req.Content,
 			SendAt:         now,
 		}
-		msg.SetContent(req.Content)
 
 		if err := s.msgRepo.Create(ctx, tx, msg); err != nil {
 			return err
