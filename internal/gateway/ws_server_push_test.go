@@ -64,17 +64,19 @@ func newTestWsServer() *WsServer {
 	return NewWsServer(cfg, nil, nil, nil)
 }
 
-func newMessage(senderID, recvID string) *entity.Message {
+func newMessage(senderId, recvId string) *entity.Message {
 	return &entity.Message{
 		Id:             1,
 		ConversationId: "si_100_200",
 		Seq:            10,
 		ClientMsgId:    "client-msg-id",
-		SenderId:       senderID,
-		RecvId:         recvID,
+		SenderId:       senderId,
+		RecvId:         recvId,
 		SessionType:    constant.SessionTypeSingle,
 		MsgType:        constant.MsgTypeText,
-		ContentText:    "hello",
+		Content: entity.MessageContent{
+			Text: &entity.TextContent{Text: "hello"},
+		},
 	}
 }
 

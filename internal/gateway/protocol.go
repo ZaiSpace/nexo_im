@@ -23,20 +23,22 @@ type WSResponse struct {
 }
 
 // SendMsgReq represents send message request data
+type WireMessageContent struct {
+	Text   string `json:"text,omitempty"`
+	Image  string `json:"image,omitempty"`
+	Video  string `json:"video,omitempty"`
+	Audio  string `json:"audio,omitempty"`
+	File   string `json:"file,omitempty"`
+	Custom string `json:"custom,omitempty"`
+}
+
 type SendMsgReq struct {
-	ClientMsgId string `json:"client_msg_id"`
-	RecvId      string `json:"recv_id,omitempty"`
-	GroupId     string `json:"group_id,omitempty"`
-	SessionType int32  `json:"session_type"`
-	MsgType     int32  `json:"msg_type"`
-	Content     struct {
-		Text   string `json:"text,omitempty"`
-		Image  string `json:"image,omitempty"`
-		Video  string `json:"video,omitempty"`
-		Audio  string `json:"audio,omitempty"`
-		File   string `json:"file,omitempty"`
-		Custom string `json:"custom,omitempty"`
-	} `json:"content"`
+	ClientMsgId string             `json:"client_msg_id"`
+	RecvId      string             `json:"recv_id,omitempty"`
+	GroupId     string             `json:"group_id,omitempty"`
+	SessionType int32              `json:"session_type"`
+	MsgType     int32              `json:"msg_type"`
+	Content     WireMessageContent `json:"content"`
 }
 
 // SendMsgResp represents send message response data
@@ -65,24 +67,17 @@ type PullMsgResp struct {
 
 // MessageData represents message data in response
 type MessageData struct {
-	ServerMsgId    int64  `json:"server_msg_id"`
-	ConversationId string `json:"conversation_id"`
-	Seq            int64  `json:"seq"`
-	ClientMsgId    string `json:"client_msg_id"`
-	SenderId       string `json:"sender_id"`
-	RecvId         string `json:"recv_id,omitempty"`
-	GroupId        string `json:"group_id,omitempty"`
-	SessionType    int32  `json:"session_type"`
-	MsgType        int32  `json:"msg_type"`
-	Content        struct {
-		Text   string `json:"text,omitempty"`
-		Image  string `json:"image,omitempty"`
-		Video  string `json:"video,omitempty"`
-		Audio  string `json:"audio,omitempty"`
-		File   string `json:"file,omitempty"`
-		Custom string `json:"custom,omitempty"`
-	} `json:"content"`
-	SendAt int64 `json:"send_at"`
+	ServerMsgId    int64              `json:"server_msg_id"`
+	ConversationId string             `json:"conversation_id"`
+	Seq            int64              `json:"seq"`
+	ClientMsgId    string             `json:"client_msg_id"`
+	SenderId       string             `json:"sender_id"`
+	RecvId         string             `json:"recv_id,omitempty"`
+	GroupId        string             `json:"group_id,omitempty"`
+	SessionType    int32              `json:"session_type"`
+	MsgType        int32              `json:"msg_type"`
+	Content        WireMessageContent `json:"content"`
+	SendAt         int64              `json:"send_at"`
 }
 
 // GetNewestSeqReq represents get newest seq request

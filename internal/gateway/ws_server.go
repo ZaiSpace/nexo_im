@@ -362,12 +362,31 @@ func (s *WsServer) GetUsersOnlineStatus(userIds []string) []*OnlineStatusResult 
 	return results
 }
 
+func wireContentToEntityContent(content WireMessageContent) entity.MessageContent {
+	return entity.NewMessageContentFromFlat(entity.FlatMessageContent{
+		Text:   content.Text,
+		Image:  content.Image,
+		Video:  content.Video,
+		Audio:  content.Audio,
+		File:   content.File,
+		Custom: content.Custom,
+	})
+}
+
+func entityContentToWireContent(content entity.MessageContent) WireMessageContent {
+	flat := content.ToFlat()
+	return WireMessageContent{
+		Text:   flat.Text,
+		Image:  flat.Image,
+		Video:  flat.Video,
+		Audio:  flat.Audio,
+		File:   flat.File,
+		Custom: flat.Custom,
+	}
+}
+
 // messageToMsgData converts entity.Message to MessageData
 func (s *WsServer) messageToMsgData(msg *entity.Message) *MessageData {
-	custom := ""
-	if msg.ContentCustom != nil {
-		custom = *msg.ContentCustom
-	}
 	return &MessageData{
 		ServerMsgId:    msg.Id,
 		ConversationId: msg.ConversationId,
@@ -378,22 +397,8 @@ func (s *WsServer) messageToMsgData(msg *entity.Message) *MessageData {
 		GroupId:        msg.GroupId,
 		SessionType:    msg.SessionType,
 		MsgType:        msg.MsgType,
-		Content: struct {
-			Text   string `json:"text,omitempty"`
-			Image  string `json:"image,omitempty"`
-			Video  string `json:"video,omitempty"`
-			Audio  string `json:"audio,omitempty"`
-			File   string `json:"file,omitempty"`
-			Custom string `json:"custom,omitempty"`
-		}{
-			Text:   msg.ContentText,
-			Image:  msg.ContentImage,
-			Video:  msg.ContentVideo,
-			Audio:  msg.ContentAudio,
-			File:   msg.ContentFile,
-			Custom: custom,
-		},
-		SendAt: msg.SendAt,
+		Content:        entityContentToWireContent(msg.Content),
+		SendAt:         msg.SendAt,
 	}
 }
 
@@ -426,7 +431,7 @@ func buildAppPushRequest(ctx context.Context, msg *entity.Message, userId string
 			senderDisplayName, lookupErr := userInfoProvider.GetUserDisplayName(ctx, senderIdInt)
 			senderDisplayName = strings.TrimSpace(senderDisplayName)
 			if lookupErr == nil && senderDisplayName != "" {
-				title = senderDisplayName
+				title = senderDisplayName + " sent you a message"
 			}
 		}
 	}
@@ -443,22 +448,28 @@ func buildPushBody(msg *entity.Message) string {
 	if msg == nil {
 		return "You received a new message"
 	}
-	switch {
-	case msg.ContentText != "":
-		return msg.ContentText
-	case msg.ContentImage != "":
+
+	flatMsg := msg.Content.ToFlat()
+	switch msg.MsgType {
+	case constant.MsgTypeText:
+		return flatMsg.Text
+	case constant.MsgTypeImage:
 		return "[Image]"
-	case msg.ContentVideo != "":
+	case constant.MsgTypeVideo:
 		return "[Video]"
-	case msg.ContentAudio != "":
+	case constant.MsgTypeAudio:
 		return "[Audio]"
-	case msg.ContentFile != "":
+	case constant.MsgTypeFile:
 		return "[File]"
-	case msg.ContentCustom != nil && *msg.ContentCustom != "":
-		return gjson.Get(*msg.ContentCustom, "show_text").String() // 统一约定按这个展示
+	case constant.MsgTypeCustom:
+		if flatMsg.Custom != "" {
+			return gjson.Get(flatMsg.Custom, "show_text").String() // 统一约定按这个展示
+		}
 	default:
 		return "You received a new message"
 	}
+
+	return "You received a new message"
 }
 
 // ========== Message Handlers ==========
@@ -494,14 +505,7 @@ func (s *WsServer) HandleSendMsg(ctx context.Context, client *Client, req *WSReq
 		GroupId:     sendReq.GroupId,
 		SessionType: sendReq.SessionType,
 		MsgType:     sendReq.MsgType,
-		Content: entity.MessageContent{
-			Text:   sendReq.Content.Text,
-			Image:  sendReq.Content.Image,
-			Video:  sendReq.Content.Video,
-			Audio:  sendReq.Content.Audio,
-			File:   sendReq.Content.File,
-			Custom: sendReq.Content.Custom,
-		},
+		Content:     wireContentToEntityContent(sendReq.Content),
 	}
 
 	msg, err := s.msgService.SendMessage(ctx, client.UserId, svcReq)
