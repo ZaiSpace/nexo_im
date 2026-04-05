@@ -1,0 +1,83 @@
+-- Message content JSON migration
+--
+-- This file is intentionally documented as a phased rollout instead of a
+-- one-shot bootstrap migration:
+--
+-- Stage 1: schema expand
+-- Add the nullable `content` column on an existing database that still uses
+-- `content_text/content_image/content_video/content_audio/content_file/content_custom`.
+--
+-- ALTER TABLE messages
+--     ADD COLUMN content JSON NULL AFTER msg_type;
+--
+-- Stage 2: deploy application
+-- Deploy the application version that reads and writes `messages.content`.
+-- Fresh environments should use `001_init_schema.sql`, which already creates
+-- the final `content JSON NOT NULL` shape, so this file should not be executed
+-- during first-time bootstrap.
+--
+-- Stage 3: pre-backfill safety check
+-- Historical expectation is that a row uses either text or image, but run this
+-- query first to detect any rows with more than one populated legacy content
+-- field before backfill:
+--
+-- SELECT
+--     id,
+--     conversation_id,
+--     seq,
+--     (
+--         IF(content_text IS NOT NULL AND content_text <> '', 1, 0) +
+--         IF(content_image IS NOT NULL AND content_image <> '', 1, 0) +
+--         IF(content_video IS NOT NULL AND content_video <> '', 1, 0) +
+--         IF(content_audio IS NOT NULL AND content_audio <> '', 1, 0) +
+--         IF(content_file IS NOT NULL AND content_file <> '', 1, 0) +
+--         IF(content_custom IS NOT NULL, 1, 0)
+--     ) AS populated_legacy_fields
+-- FROM messages
+-- WHERE (
+--     IF(content_text IS NOT NULL AND content_text <> '', 1, 0) +
+--     IF(content_image IS NOT NULL AND content_image <> '', 1, 0) +
+--     IF(content_video IS NOT NULL AND content_video <> '', 1, 0) +
+--     IF(content_audio IS NOT NULL AND content_audio <> '', 1, 0) +
+--     IF(content_file IS NOT NULL AND content_file <> '', 1, 0) +
+--     IF(content_custom IS NOT NULL, 1, 0)
+-- ) > 1
+-- ORDER BY id;
+--
+-- Stage 4: backfill data
+-- If the safety check returns no rows, backfill `content` from the legacy
+-- columns. Current historical data is expected to have only one populated
+-- legacy content field per row.
+--
+-- UPDATE messages
+-- SET content = CASE
+--     WHEN content_text IS NOT NULL AND content_text <> '' THEN
+--         JSON_OBJECT('text', JSON_OBJECT('text', content_text))
+--     WHEN content_image IS NOT NULL AND content_image <> '' THEN
+--         JSON_OBJECT('image', JSON_OBJECT('url', content_image))
+--     WHEN content_video IS NOT NULL AND content_video <> '' THEN
+--         JSON_OBJECT('video', JSON_OBJECT('url', content_video))
+--     WHEN content_audio IS NOT NULL AND content_audio <> '' THEN
+--         JSON_OBJECT('audio', JSON_OBJECT('url', content_audio))
+--     WHEN content_file IS NOT NULL AND content_file <> '' THEN
+--         JSON_OBJECT('file', JSON_OBJECT('url', content_file))
+--     WHEN content_custom IS NOT NULL THEN
+--         JSON_OBJECT('custom', content_custom)
+--     ELSE
+--         JSON_OBJECT()
+-- END
+-- WHERE content IS NULL;
+--
+-- Stage 5: contract schema
+-- After verifying the application is serving correctly with the new column:
+--
+-- ALTER TABLE messages
+--     MODIFY COLUMN content JSON NOT NULL;
+--
+-- ALTER TABLE messages
+--     DROP COLUMN content_text,
+--     DROP COLUMN content_image,
+--     DROP COLUMN content_video,
+--     DROP COLUMN content_audio,
+--     DROP COLUMN content_file,
+--     DROP COLUMN content_custom;
