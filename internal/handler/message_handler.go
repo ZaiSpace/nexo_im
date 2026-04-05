@@ -6,6 +6,7 @@ import (
 
 	"github.com/cloudwego/hertz/pkg/app"
 
+	"github.com/mbeoliero/nexo/internal/entity"
 	"github.com/mbeoliero/nexo/internal/middleware"
 	"github.com/mbeoliero/nexo/internal/service"
 	"github.com/mbeoliero/nexo/pkg/errcode"
@@ -15,6 +16,15 @@ import (
 // MessageHandler handles message-related requests
 type MessageHandler struct {
 	msgService *service.MessageService
+}
+
+type sendMessageRequest struct {
+	ClientMsgId string                    `json:"client_msg_id"`
+	RecvId      string                    `json:"recv_id,omitempty"`
+	GroupId     string                    `json:"group_id,omitempty"`
+	SessionType int32                     `json:"session_type"`
+	MsgType     int32                     `json:"msg_type"`
+	Content     entity.FlatMessageContent `json:"content"`
 }
 
 // NewMessageHandler creates a new MessageHandler
@@ -30,13 +40,22 @@ func (h *MessageHandler) SendMessage(ctx context.Context, c *app.RequestContext)
 		return
 	}
 
-	var req service.SendMessageRequest
+	var req sendMessageRequest
 	if err := c.BindAndValidate(&req); err != nil {
 		response.ErrorWithCode(ctx, c, errcode.ErrInvalidParam)
 		return
 	}
 
-	msg, err := h.msgService.SendMessage(ctx, userId, &req)
+	svcReq := &service.SendMessageRequest{
+		ClientMsgId: req.ClientMsgId,
+		RecvId:      req.RecvId,
+		GroupId:     req.GroupId,
+		SessionType: req.SessionType,
+		MsgType:     req.MsgType,
+		Content:     entity.NewMessageContentFromFlat(req.Content),
+	}
+
+	msg, err := h.msgService.SendMessage(ctx, userId, svcReq)
 	if err != nil {
 		response.Error(ctx, c, err)
 		return
