@@ -96,6 +96,15 @@ func validateMessageContent(msgType int32, content entity.MessageContent) error 
 
 // SendSingleMessage sends a single chat message
 func (s *MessageService) SendSingleMessage(ctx context.Context, senderId string, req *SendMessageRequest) (*entity.Message, error) {
+	return s.sendSingleMessage(ctx, senderId, req, true)
+}
+
+// SendSingleMessageWithoutMarkRead sends a single chat message without advancing sender read_seq.
+func (s *MessageService) SendSingleMessageWithoutMarkRead(ctx context.Context, senderId string, req *SendMessageRequest) (*entity.Message, error) {
+	return s.sendSingleMessage(ctx, senderId, req, false)
+}
+
+func (s *MessageService) sendSingleMessage(ctx context.Context, senderId string, req *SendMessageRequest, markSenderRead bool) (*entity.Message, error) {
 	// Validate request
 	if req.RecvId == "" {
 		return nil, errcode.ErrInvalidParam
@@ -191,8 +200,10 @@ func (s *MessageService) SendSingleMessage(ctx context.Context, senderId string,
 		return nil, errcode.ErrSendFailed
 	}
 
-	// Update sender's read_seq (sender has read their own message)
-	_ = s.seqRepo.UpdateReadSeq(ctx, senderId, conversationId, msg.Seq)
+	if markSenderRead {
+		// Normal messages keep sender fully read; this path intentionally does not.
+		_ = s.seqRepo.UpdateReadSeq(ctx, senderId, conversationId, msg.Seq)
+	}
 
 	// Async push to receiver (and sender's other connections)
 	if s.pusher != nil {
@@ -205,6 +216,15 @@ func (s *MessageService) SendSingleMessage(ctx context.Context, senderId string,
 
 // SendGroupMessage sends a group chat message
 func (s *MessageService) SendGroupMessage(ctx context.Context, senderId string, req *SendMessageRequest) (*entity.Message, error) {
+	return s.sendGroupMessage(ctx, senderId, req, true)
+}
+
+// SendGroupMessageWithoutMarkRead sends a group chat message without advancing sender read_seq.
+func (s *MessageService) SendGroupMessageWithoutMarkRead(ctx context.Context, senderId string, req *SendMessageRequest) (*entity.Message, error) {
+	return s.sendGroupMessage(ctx, senderId, req, false)
+}
+
+func (s *MessageService) sendGroupMessage(ctx context.Context, senderId string, req *SendMessageRequest, markSenderRead bool) (*entity.Message, error) {
 	// Validate request
 	if req.GroupId == "" {
 		return nil, errcode.ErrInvalidParam
@@ -291,8 +311,9 @@ func (s *MessageService) SendGroupMessage(ctx context.Context, senderId string, 
 		return nil, errcode.ErrSendFailed
 	}
 
-	// Update sender's read_seq
-	_ = s.seqRepo.UpdateReadSeq(ctx, senderId, conversationId, msg.Seq)
+	if markSenderRead {
+		_ = s.seqRepo.UpdateReadSeq(ctx, senderId, conversationId, msg.Seq)
+	}
 
 	// Async push to all active group members
 	if s.pusher != nil {
@@ -313,6 +334,17 @@ func (s *MessageService) SendMessage(ctx context.Context, senderId string, req *
 	}
 	if req.SessionType == constant.SessionTypeGroup || req.GroupId != "" {
 		return s.SendGroupMessage(ctx, senderId, req)
+	}
+	return nil, errcode.ErrInvalidParam
+}
+
+// SendMessageWithoutMarkRead sends a message without advancing sender read_seq.
+func (s *MessageService) SendMessageWithoutMarkRead(ctx context.Context, senderId string, req *SendMessageRequest) (*entity.Message, error) {
+	if req.SessionType == constant.SessionTypeSingle || req.RecvId != "" {
+		return s.SendSingleMessageWithoutMarkRead(ctx, senderId, req)
+	}
+	if req.SessionType == constant.SessionTypeGroup || req.GroupId != "" {
+		return s.SendGroupMessageWithoutMarkRead(ctx, senderId, req)
 	}
 	return nil, errcode.ErrInvalidParam
 }

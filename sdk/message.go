@@ -23,6 +23,15 @@ func (c *Client) InternalSendMessage(ctx context.Context, req *SendMessageReques
 	return &result, nil
 }
 
+// SendMessageWithoutMarkRead sends a message without marking the sender as read.
+func (c *Client) SendMessageWithoutMarkRead(ctx context.Context, req *SendMessageRequest) (*MessageInfo, error) {
+	var result MessageInfo
+	if err := c.post(ctx, "/msg/send_without_mark_read", req, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
 // SendTextMessage is a convenience method to send a text message to a single user
 func (c *Client) SendTextMessage(ctx context.Context, clientMsgId, recvId, text string) (*MessageInfo, error) {
 	return c.SendMessage(ctx, &SendMessageRequest{
@@ -39,6 +48,32 @@ func (c *Client) SendTextMessage(ctx context.Context, clientMsgId, recvId, text 
 // SendGroupTextMessage is a convenience method to send a text message to a group
 func (c *Client) SendGroupTextMessage(ctx context.Context, clientMsgId, groupId, text string) (*MessageInfo, error) {
 	return c.SendMessage(ctx, &SendMessageRequest{
+		ClientMsgId: clientMsgId,
+		GroupId:     groupId,
+		SessionType: SessionTypeGroup,
+		MsgType:     MsgTypeText,
+		Content: MessageContent{
+			Text: text,
+		},
+	})
+}
+
+// SendTextMessageWithoutMarkRead is a convenience method to send a single-chat text message without marking the sender as read.
+func (c *Client) SendTextMessageWithoutMarkRead(ctx context.Context, clientMsgId, recvId, text string) (*MessageInfo, error) {
+	return c.SendMessageWithoutMarkRead(ctx, &SendMessageRequest{
+		ClientMsgId: clientMsgId,
+		RecvId:      recvId,
+		SessionType: SessionTypeSingle,
+		MsgType:     MsgTypeText,
+		Content: MessageContent{
+			Text: text,
+		},
+	})
+}
+
+// SendGroupTextMessageWithoutMarkRead is a convenience method to send a group text message without marking the sender as read.
+func (c *Client) SendGroupTextMessageWithoutMarkRead(ctx context.Context, clientMsgId, groupId, text string) (*MessageInfo, error) {
+	return c.SendMessageWithoutMarkRead(ctx, &SendMessageRequest{
 		ClientMsgId: clientMsgId,
 		GroupId:     groupId,
 		SessionType: SessionTypeGroup,
