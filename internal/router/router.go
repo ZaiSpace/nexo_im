@@ -55,6 +55,7 @@ func SetupRouter(h *server.Hertz, handlers *Handlers, wsServer *gateway.WsServer
 	msgGroup := h.Group("/msg", middleware.JWTAuth())
 	{
 		msgGroup.POST("/send", handlers.Message.SendMessage)
+		msgGroup.POST("/send_without_mark_read", handlers.Message.SendMessageWithoutMarkRead)
 		msgGroup.GET("/pull", handlers.Message.PullMessages)
 		msgGroup.GET("/max_seq", handlers.Message.GetMaxSeq)
 	}
