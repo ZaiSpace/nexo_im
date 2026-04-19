@@ -26,7 +26,16 @@ func (c *Client) InternalSendMessage(ctx context.Context, req *SendMessageReques
 // SendMessageWithoutMarkRead sends a message without marking the sender as read.
 func (c *Client) SendMessageWithoutMarkRead(ctx context.Context, req *SendMessageRequest) (*MessageInfo, error) {
 	var result MessageInfo
-	if err := c.post(ctx, "/msg/send_without_mark_read", req, &result); err != nil {
+	if err := c.post(ctx, "/im/msg/send_without_mark_read", req, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// InternalSendMessageWithoutMarkRead sends a message without marking the sender as read via internal route.
+func (c *Client) InternalSendMessageWithoutMarkRead(ctx context.Context, req *SendMessageRequest) (*MessageInfo, error) {
+	var result MessageInfo
+	if err := c.post(ctx, "/im/internal/msg/send_without_mark_read", req, &result); err != nil {
 		return nil, err
 	}
 	return &result, nil

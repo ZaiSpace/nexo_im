@@ -105,6 +105,7 @@ func SetupRouter(h *server.Hertz, handlers *Handlers, wsServer *gateway.WsServer
 	internalMsgGroup := root.Group("/internal/msg", middleware.InternalAuthAsUser())
 	{
 		internalMsgGroup.POST("/send", handlers.Message.SendMessage)
+		internalMsgGroup.POST("/send_without_mark_read", handlers.Message.SendMessageWithoutMarkRead)
 	}
 
 	// Internal conversation routes (service-to-service auth + acting user required)
