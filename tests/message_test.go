@@ -49,6 +49,7 @@ const (
 	SessionTypeSingle = 1
 	SessionTypeGroup  = 2
 	MsgTypeText       = 1
+	MsgTypeCustom     = 100
 )
 
 func TestMessage_SendSingleChat(t *testing.T) {
@@ -232,6 +233,110 @@ func TestMessage_SendGroupChat(t *testing.T) {
 
 		AssertError(t, resp, 3003, "non-member should not be able to send")
 	})
+}
+
+func TestMessage_SendSingleMessageWithoutMarkReadUnreadForBothSides(t *testing.T) {
+	user1Id := generateUserId("without_mark_read_single_user1")
+	user2Id := generateUserId("without_mark_read_single_user2")
+	client1, _ := RegisterAndLogin(t, user1Id, "Without Mark Read Single User 1", "password123")
+	client2, _ := RegisterAndLogin(t, user2Id, "Without Mark Read Single User 2", "password123")
+
+	req := SendMessageRequest{
+		ClientMsgId: generateClientMsgId(),
+		RecvId:      user2Id,
+		SessionType: SessionTypeSingle,
+		MsgType:     MsgTypeCustom,
+		Content: MessageContent{
+			Custom: `{"notice":"single without mark read"}`,
+		},
+	}
+
+	resp, err := client1.POST("/msg/send_without_mark_read", req)
+	if err != nil {
+		t.Fatalf("send message without mark read failed: %v", err)
+	}
+	AssertSuccess(t, resp, "send message without mark read should succeed")
+
+	var msgInfo MessageInfo
+	if err := resp.ParseData(&msgInfo); err != nil {
+		t.Fatalf("parse message info failed: %v", err)
+	}
+
+	for _, tc := range []struct {
+		name   string
+		client *APIClient
+		want   int64
+	}{
+		{name: "sender unread count", client: client1, want: 1},
+		{name: "receiver unread count", client: client2, want: 1},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			resp, err := tc.client.GET(fmt.Sprintf("/conversation/unread_count?conversation_id=%s", msgInfo.ConversationId))
+			if err != nil {
+				t.Fatalf("get unread count failed: %v", err)
+			}
+			AssertSuccess(t, resp, "get unread count should succeed")
+
+			var result map[string]int64
+			if err := resp.ParseData(&result); err != nil {
+				t.Fatalf("parse result failed: %v", err)
+			}
+			if result["unread_count"] != tc.want {
+				t.Fatalf("expected unread_count=%d, got %d", tc.want, result["unread_count"])
+			}
+		})
+	}
+}
+
+func TestMessage_SendGroupMessageWithoutMarkReadUnreadForAllMembers(t *testing.T) {
+	ownerId := generateUserId("without_mark_read_group_owner")
+	memberId := generateUserId("without_mark_read_group_member")
+	ownerClient, _ := RegisterAndLogin(t, ownerId, "Without Mark Read Group Owner", "password123")
+	memberClient, _ := RegisterAndLogin(t, memberId, "Without Mark Read Group Member", "password123")
+
+	groupId := CreateGroupAndGetId(t, ownerClient, "Without Mark Read Message Group", []string{memberId})
+	conversationId := "sg_" + groupId
+
+	req := SendMessageRequest{
+		ClientMsgId: generateClientMsgId(),
+		GroupId:     groupId,
+		SessionType: SessionTypeGroup,
+		MsgType:     MsgTypeCustom,
+		Content: MessageContent{
+			Custom: `{"notice":"group without mark read"}`,
+		},
+	}
+
+	resp, err := ownerClient.POST("/msg/send_without_mark_read", req)
+	if err != nil {
+		t.Fatalf("send group message without mark read failed: %v", err)
+	}
+	AssertSuccess(t, resp, "send group message without mark read should succeed")
+
+	for _, tc := range []struct {
+		name   string
+		client *APIClient
+		want   int64
+	}{
+		{name: "owner unread count", client: ownerClient, want: 1},
+		{name: "member unread count", client: memberClient, want: 1},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			resp, err := tc.client.GET(fmt.Sprintf("/conversation/unread_count?conversation_id=%s", conversationId))
+			if err != nil {
+				t.Fatalf("get unread count failed: %v", err)
+			}
+			AssertSuccess(t, resp, "get unread count should succeed")
+
+			var result map[string]int64
+			if err := resp.ParseData(&result); err != nil {
+				t.Fatalf("parse result failed: %v", err)
+			}
+			if result["unread_count"] != tc.want {
+				t.Fatalf("expected unread_count=%d, got %d", tc.want, result["unread_count"])
+			}
+		})
+	}
 }
 
 func TestMessage_Pull(t *testing.T) {

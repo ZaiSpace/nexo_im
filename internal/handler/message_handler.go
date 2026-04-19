@@ -64,6 +64,38 @@ func (h *MessageHandler) SendMessage(ctx context.Context, c *app.RequestContext)
 	response.Success(ctx, c, msg.ToMessageInfo())
 }
 
+// SendMessageWithoutMarkRead handles send requests that keep the sender unread state unchanged.
+func (h *MessageHandler) SendMessageWithoutMarkRead(ctx context.Context, c *app.RequestContext) {
+	userId := middleware.GetUserId(c)
+	if userId == "" {
+		response.ErrorWithCode(ctx, c, errcode.ErrUnauthorized)
+		return
+	}
+
+	var req sendMessageRequest
+	if err := c.BindAndValidate(&req); err != nil {
+		response.ErrorWithCode(ctx, c, errcode.ErrInvalidParam)
+		return
+	}
+
+	svcReq := &service.SendMessageRequest{
+		ClientMsgId: req.ClientMsgId,
+		RecvId:      req.RecvId,
+		GroupId:     req.GroupId,
+		SessionType: req.SessionType,
+		MsgType:     req.MsgType,
+		Content:     entity.NewMessageContentFromFlat(req.Content),
+	}
+
+	msg, err := h.msgService.SendMessageWithoutMarkRead(ctx, userId, svcReq)
+	if err != nil {
+		response.Error(ctx, c, err)
+		return
+	}
+
+	response.Success(ctx, c, msg.ToMessageInfo())
+}
+
 // PullMessages handles pull messages request
 func (h *MessageHandler) PullMessages(ctx context.Context, c *app.RequestContext) {
 	userId := middleware.GetUserId(c)
