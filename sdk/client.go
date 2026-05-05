@@ -236,29 +236,7 @@ func (c *Client) request(ctx context.Context, method, path string, body any, res
 		return fmt.Errorf("failed to send request: %w", err)
 	}
 
-	// Decode response
-	var apiResp Response
-	if err := json.Unmarshal(resp.Body(), &apiResp); err != nil {
-		return fmt.Errorf("failed to decode response: %w", err)
-	}
-
-	// Check for API error
-	if apiResp.Code != 0 {
-		return &Error{Code: apiResp.Code, Msg: apiResp.ErrorMessage()}
-	}
-
-	// Decode data if result is provided
-	if result != nil && apiResp.Data != nil {
-		dataBytes, err := json.Marshal(apiResp.Data)
-		if err != nil {
-			return fmt.Errorf("failed to marshal response data: %w", err)
-		}
-		if err := json.Unmarshal(dataBytes, result); err != nil {
-			return fmt.Errorf("failed to decode response data: %w", err)
-		}
-	}
-
-	return nil
+	return decodeAPIResponse(resp, result)
 }
 
 // get makes a GET request with query parameters
@@ -284,18 +262,25 @@ func (c *Client) get(ctx context.Context, path string, params map[string]string,
 		return fmt.Errorf("failed to send request: %w", err)
 	}
 
-	// Decode response
-	var apiResp Response
-	if err = json.Unmarshal(resp.Body(), &apiResp); err != nil {
-		return fmt.Errorf("failed to decode response: %w", err)
+	return decodeAPIResponse(resp, result)
+}
+
+func decodeAPIResponse(resp *protocol.Response, result any) error {
+	body := resp.Body()
+	statusCode := resp.StatusCode()
+	if statusCode < 200 || statusCode >= 300 {
+		return fmt.Errorf("unexpected status %d: %s", statusCode, responseBodyPreview(body))
 	}
 
-	// Check for API error
+	var apiResp Response
+	if err := json.Unmarshal(body, &apiResp); err != nil {
+		return fmt.Errorf("failed to decode response: %w, body: %s", err, responseBodyPreview(body))
+	}
+
 	if apiResp.Code != 0 {
 		return &Error{Code: apiResp.Code, Msg: apiResp.ErrorMessage()}
 	}
 
-	// Decode data if result is provided
 	if result != nil && apiResp.Data != nil {
 		dataBytes, err := json.Marshal(apiResp.Data)
 		if err != nil {
@@ -307,6 +292,15 @@ func (c *Client) get(ctx context.Context, path string, params map[string]string,
 	}
 
 	return nil
+}
+
+func responseBodyPreview(body []byte) string {
+	const maxPreviewLen = 512
+	preview := strings.TrimSpace(string(body))
+	if len(preview) > maxPreviewLen {
+		return preview[:maxPreviewLen] + "..."
+	}
+	return preview
 }
 
 // post makes a POST request
